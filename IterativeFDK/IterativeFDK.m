@@ -284,7 +284,7 @@ R = zeros ( LP * LXigama * LBeta, 1 ) ;   % create space to store fan projection
 load G:\CTcode\Data\IterativeFDK\Diskphantom\Display.mat
 % figure,imshow3Dfull(Display,[])
 load G:\CTcode\Data\IterativeFDK\Diskphantom\pic_lowQ.mat
-
+ 
 picvector = reshape (pic_lowQ, t_length * s_length * z_length, 1);
 
 pic_int = pic( : , : , 2 : z_length ); 
