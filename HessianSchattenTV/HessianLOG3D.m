@@ -13,7 +13,7 @@ function result = HessianLOG3D( input )
         end
     end
 
-
+   
 end
 
 
