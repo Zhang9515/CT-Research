@@ -48,9 +48,56 @@ LBeta = length ( BetaScanRange ) ;
 % CovarianceMatrix = eye( LBeta * LXigama * LP ) ;
 
 %% 
+alpha = 3e4 ; Tao = 1 ; LipschitzConstant = 144 * Tao^2 ; ps =3; Knest0 = 1; Kmm0 = 1; ProjectionOnBallofBsq0 = zeros( 3 , 3 , t_length * s_length * z_length ) ;
+Tmm = 10;   % outerloop
+Tnest = 10 ; % innerloop
 
 picvector = reshape (pic, t_length * s_length * z_length, 1) ;
-R = ProjectionCone_3D (picvector, t_length, s_length, z_length, Size, BetaScanRange, Pdomain, Xigamadomain, Distance) ;
+V = ProjectionCone_3D (picvector, t_length, s_length, z_length, Size, BetaScanRange, Pdomain, Xigamadomain, Distance) ;
+
+Kmmprevious = Kmm0 ;
+for tmm = 1 : Tmm
+    ProjectionData = ProjectionCone_3D (Ucurrent, t_length, s_length, z_length, Size, BetaScanRange, Pdomain, Xigamadomain, Distance) ;
+
+    Residual = Backprojection( V - ProjectionData , Xigamadomain , Pdomain , BetaScanRange , Distance, Size, t_length, s_length, z_length) ;
+
+    Z = Ucurrent + alpha^(-1) * Residual ; 
+
+    ProjectionOnRN = Z - Tao * HstarOmega( ProjectionOnBallofBsq , ps) ; 
+
+    GradientofG = Tao * HessianLOG3D( ProjectionOnRN ) ;
+
+      %% Nesterov method: orthogonal projections , to update omega, we use the result of ProjectionOnBallofBsq as 
+      % Omega
+    Knestprevious = Knest0 ; ProjectionOnBallofBsqprevious = ProjectionOnBallofBsq0 ;
+    for tnest = 1 : Tnest
+          ProjectionOnBallofBsq = Omegaprevious + GradientofG / LipschitzConstant ; 
+          for n = 1 : t_length * s_length * z_length
+
+                % q = 2
+                Fnorm = norm ( ProjectionOnBallofBsq( : , : , n ), 'fro' ) ;
+                if ( Fnorm > 1 )
+                    ProjectionOnBallofBsq( : , : , n ) = ProjectionOnBallofBsq( : , : , n ) / Fnorm ;
+                end
+
+                % q = inf
+            %     [ Usvd, ProjectionOnBallofBsq, Vsvd ] = svd ( ProjectionOnBallofBsq( : , : , n ) ) ; 
+
+          end %n
+          Knestcurrent = ( 1 + sqrt( 1 + Knestprevious^2 ) ) / 2 ;
+          Omegacurrent = ProjectionOnBallofBsqprevious + ( Knestprevious - 1 ) / Knestcurrent .* ( ProjectionOnBallofBsq - ProjectionOnBallofBsqprevious ) ;
+          Knestprevious = Knestcurrent ;
+          Omegaprevious = Omegacurrent;
+          
+    end  %nest
+    S = Z - Tao * HstarOmega( OmegaCurrent , ps) ;
+    Kmmcurrent = ( 1 + sqrt( 1 + Kmmprevious^2 ) ) / 2 ;
+    
+    
+    
+    Kmmprevious = Kmmcurrent ; 
+end  %mm
+
 
 % R = reshape ( R , LP , LXigama, LBeta ) ;
 % figure,imshow3Dfull(R,[])

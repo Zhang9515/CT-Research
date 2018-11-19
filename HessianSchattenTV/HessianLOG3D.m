@@ -12,8 +12,7 @@ function result = HessianLOG3D( input )
             result( i , j , : ) = reshape ( conv( input , H( num , : , : , : ) , 'same' ) , Lx * Ly * Lz , 1 ) ;
         end
     end
-
-   
+  
 end
 
 

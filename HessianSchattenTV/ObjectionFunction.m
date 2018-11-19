@@ -1,0 +1,7 @@
+function Fai = ObjectionFunction( )
+
+
+
+
+
+end
