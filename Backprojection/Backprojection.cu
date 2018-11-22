@@ -43,6 +43,7 @@ __global__ void BackProjection(const float *dev_R, float *dev_Display, const dou
 	double P_domain1 = 0, P_domain2 = 0, Xigama_domain1 = 0, Xigama_domain2 = 0;
 	double Xig1 = 0, Xig2 = 0, P1 = 0, P2 = 0;
 	double Display_pBeta = 0;
+	double backweight = 0;
 
 	if ((P >= minP) && (P < maxP) && (Xigama >= minXigama) && (Xigama < maxXigama))
 	{
@@ -202,22 +203,22 @@ __global__ void BackProjection(const float *dev_R, float *dev_Display, const dou
 		//since the global function can not call exterior function, so the previous code will be copied here.
 
 		// actual Size
-		double tlow = Tindex*Resolution_t - Center_t, thigh = (Tindex+1)*Resolution_t - Center_t, slow = Sindex*Resolution_s - Center_s, shigh = (Sindex+1)*Resolution_s - Center_s,
-			zlow = Zindex*Resolution_z - Center_z, zhigh = (Zindex+1)*Resolution_z - Center_z;
+		tlow = Tindex * Resolution_t - Center_t; thigh = (Tindex + 1)*Resolution_t - Center_t; slow = Sindex * Resolution_s - Center_s; shigh = (Sindex + 1)*Resolution_s - Center_s;
+			zlow = Zindex * Resolution_z - Center_z; zhigh = (Zindex + 1)*Resolution_z - Center_z;
 
 		//compute the first and last point in the ROI
 		// using DetectPoint_end set up projection equation
-		double tlow_s = source_s + (tlow - source_t) * (DetectPoint_send - source_s) / (DetectPoint_tend - source_t);
-		double tlow_z = source_z + (tlow - source_t) * (DetectPoint_zend - source_z) / (DetectPoint_tend - source_t);
+		tlow_s = source_s + (tlow - source_t) * (DetectPoint_send - source_s) / (DetectPoint_tend - source_t);
+		tlow_z = source_z + (tlow - source_t) * (DetectPoint_zend - source_z) / (DetectPoint_tend - source_t);
 
-		double slow_t = source_t + (slow - source_s) * (DetectPoint_tend - source_t) / (DetectPoint_send - source_s);
-		double slow_z = source_z + (slow - source_s) * (DetectPoint_zend - source_z) / (DetectPoint_send - source_s);
+		slow_t = source_t + (slow - source_s) * (DetectPoint_tend - source_t) / (DetectPoint_send - source_s);
+		slow_z = source_z + (slow - source_s) * (DetectPoint_zend - source_z) / (DetectPoint_send - source_s);
 
-		double zlow_t = source_t + (zlow - source_z) * (DetectPoint_tend - source_t) / (DetectPoint_zend - source_z);
-		double zlow_s = source_s + (zlow - source_z) * (DetectPoint_send - source_s) / (DetectPoint_zend - source_z);
+		zlow_t = source_t + (zlow - source_z) * (DetectPoint_tend - source_t) / (DetectPoint_zend - source_z);
+		zlow_s = source_s + (zlow - source_z) * (DetectPoint_send - source_s) / (DetectPoint_zend - source_z);
 
 		//double *Range = new double [6];   //  XYXY small-big(number)
-		double T1 = 0, S1 = 0, Z1 = 0, T2 = 0, S2 = 0, Z2 = 0;
+		T1 = 0; S1 = 0; Z1 = 0; T2 = 0; S2 = 0; Z2 = 0;
 
 		if (tlow_s >= 0 && tlow_s <= shigh && tlow_z >= 0 && tlow_z <= zhigh)
 		{
@@ -325,7 +326,7 @@ cudaError_t BackPro(float *Display, const float *R, const float *Xigamadomain, c
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "dev_R cudaMalloc failed!\n");
 		mexPrintf("dev_R cudaMalloc failed! %s\n", cudaGetErrorString(cudaStatus));
-		goto Error1;
+		goto Error;
 	}
 
 	cudaStatus = cudaMalloc((void**)&dev_Pdomain, LP * sizeof(float));
@@ -356,7 +357,7 @@ cudaError_t BackPro(float *Display, const float *R, const float *Xigamadomain, c
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaMemcpy R failed!\n");
 		mexPrintf("cudaMemcpy R failed! %s\n", cudaGetErrorString(cudaStatus));
-		goto Error1;
+		goto Error;
 	}
 
 	cudaStatus = cudaMemcpy(dev_Pdomain, Pdomain, LP * sizeof(float), cudaMemcpyHostToDevice);
@@ -440,6 +441,7 @@ cudaError_t BackPro(float *Display, const float *R, const float *Xigamadomain, c
 	}
 
 Error:
+	cudaFree(dev_R);
 	cudaFree(dev_BetaScanRange);
 	cudaFree(dev_Pdomain);
 	cudaFree(dev_Xigamadomain);
