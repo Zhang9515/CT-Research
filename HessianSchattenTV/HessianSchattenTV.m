@@ -58,10 +58,12 @@ V = ProjectionCone_3D (picvector, t_length, s_length, z_length, Size, BetaScanRa
 
 % z_length = 30;
 FDKresult = FDK ( R , Xigamadomain , Pdomain , BetaScanRange , Distance, Size, t_length, s_length, z_length) ;
-FDKresult = reshape ( FDKresult , t_length , s_length , z_length ) ;
 
+% figure,imshow3Dfull(FDKresult , [] )
+%  
 %% hybrid HS with TV iterative method
 
+OrderofHS = 2 ; 
 alpha = 3e4 ; Tao = 1 ; LipschitzConstant = 144 * Tao^2 ; ps =3; 
 Knesterov0 = 1; Kmm0 = 1; ProjectionOnBallofBsq0 = zeros( 3 , 3 , t_length * s_length * z_length ) ;
 U0 = FDKresult ; 
@@ -72,7 +74,10 @@ Tnesterov = 10 ; % innerloop
 AU = ProjectionCone_3D (FDK, t_length, s_length, z_length, Size, BetaScanRange, Pdomain, Xigamadomain, Distance) ;
 
 Kmmprevious = Kmm0 ;
-Cfai0 = ObjectionFunction( V , AU , ) ;
+
+FDKresult = reshape ( FDKresult , t_length , s_length , z_length ) ;
+Cfai0 = ObjectionFunction( V , AU , FDKresult, OrderofHS, Tao ) ;
+
 Uprevious = U0 ; 
 Xprevious = U0 ;
 
@@ -97,15 +102,17 @@ for tmm = 1 : Tmm
           ProjectionOnBallofBsq = Omegaprevious + GradientofG / LipschitzConstant ; 
           for n = 1 : t_length * s_length * z_length
 
-                % q = 2, p =2 , 1/p + 1/q = 1
-                Fnorm = norm ( ProjectionOnBallofBsq( : , : , n ), 'fro' ) ;
-                if ( Fnorm > 1 )
-                    ProjectionOnBallofBsq( : , : , n ) = ProjectionOnBallofBsq( : , : , n ) / Fnorm ;
+                % q = 2, OrderofHS = p =2 , 1/p + 1/q = 1
+                if ( OrderofHS == 2 )
+                    Fnorm = norm ( ProjectionOnBallofBsq( : , : , n ), 'fro' ) ;
+                    if ( Fnorm > 1 )
+                        ProjectionOnBallofBsq( : , : , n ) = ProjectionOnBallofBsq( : , : , n ) / Fnorm ;
+                    end
+                
+                % q = inf , OrderofHS = p =1, 1/p + 1/q = 1
+                %     [ Usvd, ProjectionOnBallofBsq, Vsvd ] = svd ( ProjectionOnBallofBsq( : , : , n ) ) ; 
                 end
-
-                % q = inf , p =1, 1/p + 1/q = 1
-            %     [ Usvd, ProjectionOnBallofBsq, Vsvd ] = svd ( ProjectionOnBallofBsq( : , : , n ) ) ; 
-
+                
           end %n
           Knesterovcurrent = ( 1 + sqrt( 1 + Knesterovprevious^2 ) ) / 2 ;
           Omegacurrent = ProjectionOnBallofBsqprevious + ( Knesterovprevious - 1 ) / Knesterovcurrent .* ( ProjectionOnBallofBsq - ProjectionOnBallofBsqprevious ) ;
@@ -117,8 +124,10 @@ for tmm = 1 : Tmm
     AS = ProjectionCone_3D (S, t_length, s_length, z_length, Size, BetaScanRange, Pdomain, Xigamadomain, Distance) ;
     Kmmcurrent = ( 1 + sqrt( 1 + Kmmprevious^2 ) ) / 2 ;
     
-    % determine whether the obectivefunction
-    Cfaicurrent = ObjectiveFunction( ProjectionData, AS , S, OrderofHS, Tao) ;
+    % determine whether the obective function descents in this round of
+    % iteration
+    Smatrix = reshape( S , t_length, s_length, z_length ) ; 
+    Cfaicurrent = ObjectiveFunction( V , AS , Smatrix, OrderofHS, Tao) ;
     if ( Cfaicurrent > Cfaiprevious )
         Ucurrent = Uprevious ;
     else
