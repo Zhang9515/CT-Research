@@ -50,14 +50,14 @@ LBeta = length ( BetaScanRange ) ;
 %% FDK as initial input
 
 picvector = reshape (pic, t_length * s_length * z_length, 1);
-clear pic;
+clear pic ;
 V = ProjectionCone_3D (picvector, t_length, s_length, z_length, Size, BetaScanRange, Pdomain, Xigamadomain, Distance);
 % R = reshape ( R , LP , LXigama, LBeta ) ;
 % figure,imshow3Dfull(R,[])
 % clear picvector;
 
 % z_length = 30;
-FDKresult = FDK ( R , Xigamadomain , Pdomain , BetaScanRange , Distance, Size, t_length, s_length, z_length) ;
+FDKresult = FDK ( V , Xigamadomain , Pdomain , BetaScanRange , Distance, Size, t_length, s_length, z_length) ;
 
 % figure,imshow3Dfull(FDKresult , [] )
 %  
