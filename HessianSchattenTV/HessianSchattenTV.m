@@ -55,7 +55,7 @@ V = ProjectionCone_3D (picvector, t_length, s_length, z_length, Size, BetaScanRa
 % R = reshape ( R , LP , LXigama, LBeta ) ;
 % figure,imshow3Dfull(R,[])
 % clear picvector;
-
+V = single(V) ;
 % z_length = 30;
 FDKresult = FDK ( V , Xigamadomain , Pdomain , BetaScanRange , Distance, Size, t_length, s_length, z_length) ;
 
