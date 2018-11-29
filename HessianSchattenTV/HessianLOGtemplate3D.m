@@ -1,8 +1,8 @@
 function H = HessianLOGtemplate3D( ps )
 % 2018/11/12
-    
+    % input: size of patch( constant);  output: 3 - 3 - ps - ps - ps
     patchsize = [ps , ps , ps] ; 
-    patchsizeH = [ 9 , patchsize ];
+    patchsizeH = [ 3 , 3 , patchsize ];
     
     H = zeros ( patchsizeH ) ; 
     Hx = zeros(patchsize);
@@ -25,15 +25,15 @@ function H = HessianLOGtemplate3D( ps )
             end
         end
     end
-    H(1 , : , : , : ) = Hx ;
-    H(2 , : , : , : ) = Hxy ;
-    H(3, : , : , : ) = Hxz ;
-    H(4 , : , : , : ) = Hxy ;
-    H(5 , : , : , : ) = Hy ;
-    H(6 , : , : , : ) = Hyz;
-    H(7 , : , : , : ) = Hxz ;
-    H(8 , : , : , : ) = Hyz ;
-    H(9 , : , : , : ) = Hz ;
+    H(1 , 1 , : , : , : ) = Hx ;
+    H(1 , 2 , : , : , : ) = Hxy ;
+    H(1 , 3 , : , : , : ) = Hxz ;
+    H(2 , 1 , : , : , : ) = Hxy ;
+    H(2 , 2 , : , : , : ) = Hy ;
+    H(2 , 3 , : , : , : ) = Hyz;
+    H(3 , 1 , : , : , : ) = Hxz ;
+    H(3 , 2 , : , : , : ) = Hyz ;
+    H(3 , 3 , : , : , : ) = Hz ;
 end
 
 

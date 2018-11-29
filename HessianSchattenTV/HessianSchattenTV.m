@@ -65,36 +65,49 @@ FDKresult = FDK ( V , Xigamadomain , Pdomain , BetaScanRange , Distance, Size, t
 %% hybrid HS with TV iterative method
 
 OrderofHS = 2 ; 
-alpha = 3e4 ; Tao = 1 ; LipschitzConstant = 144 * Tao^2 ; ps =3; 
+alpha = 2e10 ;   % 2e10 according to paper 
+Tao = 1 ; LipschitzConstant = 144 * Tao^2 ; ps =3; 
 Knesterov0 = 1; Kmm0 = 1; ProjectionOnBallofBsq0 = zeros( 3 , 3 , t_length * s_length * z_length ) ;
 U0 = FDKresult ; 
 
-Tmm = 10;   % outerloop
-Tnesterov = 10 ; % innerloop
+Tmm = 40;   % outerloop
+Tnesterov = 30 ; % innerloop
 
-AU = ProjectionCone_3D (FDK, t_length, s_length, z_length, Size, BetaScanRange, Pdomain, Xigamadomain, Distance) ;
+FDKresult_single = single(FDKresult) ;
+AU = ProjectionCone_3D (FDKresult_single, t_length, s_length, z_length, Size, BetaScanRange, Pdomain, Xigamadomain, Distance) ;
 
 Kmmprevious = Kmm0 ;
 
 FDKresult = reshape ( FDKresult , t_length , s_length , z_length ) ;
-Cfai0 = ObjectionFunction( V , AU , FDKresult, OrderofHS, Tao ) ;
+Cfai0 = ObjectiveFunction( V , AU , FDKresult, OrderofHS, Tao ) ;
 
+Cfaiprevious = Cfai0 ; 
 Uprevious = U0 ; 
 Xprevious = U0 ;
+outer_threshold = 1e-3 ;
+inner_threshold = 1e-3 ;
 
 for tmm = 1 : Tmm
-    ProjectionData = ProjectionCone_3D (Xprevious, t_length, s_length, z_length, Size, BetaScanRange, Pdomain, Xigamadomain, Distance) ;
-
-    Residual = Backprojection( V - ProjectionData , Xigamadomain , Pdomain , BetaScanRange , Distance, Size, t_length, s_length, z_length) ;
-
-    Z = Xprevious + alpha^(-1) * Residual ; 
+    disp(['outerloop: ', num2str(tmm) ])
+    
+    Xprevious_single = single(Xprevious) ;
+    ProjectionData = ProjectionCone_3D (Xprevious_single, t_length, s_length, z_length, Size, BetaScanRange, Pdomain, Xigamadomain, Distance) ;
+    
+    ProjectionData_single = single(  V - ProjectionData ) ;
+    Residual = Backprojection( ProjectionData_single , Xigamadomain , Pdomain , BetaScanRange , Distance, Size, t_length, s_length, z_length) ;
+    
+    qq = reshape(Residual , t_length, s_length, z_length ) ; %
+    figure,imshow3Dfull(qq,[]) %
+    
+    Z = Xprevious + Residual / alpha ; 
 
     %% Nesterov method: orthogonal projections , to update omega, we use the result of ProjectionOnBallofBsq as 
-      % Omega
+      % Omega 
     Knesterovprevious = Knesterov0 ; ProjectionOnBallofBsqprevious = ProjectionOnBallofBsq0 ;
     Omegaprevious = ProjectionOnBallofBsq0 ; 
     
     for tnesterov = 1 : Tnesterov
+          disp(['innerloop: ', num2str(tnesterov) ])
           
           ProjectionOnRN = Z - Tao * HstarOmega( Omegaprevious , ps) ; 
           ProjectionOnRN = reshape( ProjectionOnRN , t_length , s_length , z_length ) ;
@@ -114,15 +127,20 @@ for tmm = 1 : Tmm
                 %     [ Usvd, ProjectionOnBallofBsq, Vsvd ] = svd ( ProjectionOnBallofBsq( : , : , n ) ) ; 
                 end
                 
-          end %n
+          end %n pixel
           Knesterovcurrent = ( 1 + sqrt( 1 + Knesterovprevious^2 ) ) / 2 ;
           Omegacurrent = ProjectionOnBallofBsqprevious + ( Knesterovprevious - 1 ) / Knesterovcurrent .* ( ProjectionOnBallofBsq - ProjectionOnBallofBsqprevious ) ;
+          % stop condition
+          if ( StopDeterminer( ProjectionOnBallofBsq , ProjectionOnBallofBsqprevious , inner_threshold ) )
+              break ;
+          end
           Knesterovprevious = Knesterovcurrent ;
-          Omegaprevious = Omegacurrent;
-          
-    end  %nest
-    S = Z - Tao * HstarOmega( OmegaCurrent , ps) ;
-    AS = ProjectionCone_3D (S, t_length, s_length, z_length, Size, BetaScanRange, Pdomain, Xigamadomain, Distance) ;
+          Omegaprevious = Omegacurrent;         
+    end  %nesterov
+    
+    S = Z - Tao * HstarOmega( ProjectionOnBallofBsqprevious , ps) ;
+    S_single = single( S ) ;
+    AS = ProjectionCone_3D (S_single, t_length, s_length, z_length, Size, BetaScanRange, Pdomain, Xigamadomain, Distance) ;
     Kmmcurrent = ( 1 + sqrt( 1 + Kmmprevious^2 ) ) / 2 ;
     
     % determine whether the obective function descents in this round of
@@ -135,7 +153,12 @@ for tmm = 1 : Tmm
         Ucurrent = S ;
     end
     Xcurrent = Ucurrent + ( Kmmprevious / Kmmcurrent ) * ( S - Ucurrent ) + ( Kmmprevious - 1) / Kmmcurrent * ( Ucurrent - Uprevious ) ;
+    % stop condition
+    if ( StopDeterminer( Ucurrent , Uprevious , outer_threshold ) )
+              break ;
+    end
     
+    Uprevious = Ucurrent ; 
     Cfaiprevious = Cfaicurrent ;
     Xprevious = Xcurrent ; 
     Kmmprevious = Kmmcurrent ; 

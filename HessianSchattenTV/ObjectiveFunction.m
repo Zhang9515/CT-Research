@@ -1,7 +1,7 @@
 function Fai = ObjectiveFunction( ProjectionData, AU , U, OrderofHS, Tao)
 % U is the matrix of image
     datalength = numel( U ) ;
-
+    Hsnorm = 0 ;
     HSLOG3D = HessianLOG3D( U ) ; 
     for i = 1 : datalength
         svd_pixel = svd ( squeeze( HSLOG3D( : , : , i ) ) ) ;

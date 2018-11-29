@@ -1,6 +1,6 @@
 #include "Backprojection.h"
 // 2018/11/16 apply GPU acceleration
-#define pow2(x) (1.0*(x)*(x))
+
 __device__ const double PI = 3.141592653589793;
 
 // thiss
@@ -27,7 +27,10 @@ __global__ void BackProjection(const float *dev_R, float *dev_Display, const dou
 	double Center_z = dev_Size[2] / 2;
 
 	// this is a little different from code on MATLAB
-	double image_t = (Tindex + 0.5) * Resolution_t - Center_t;  float image_s = (Sindex + 0.5) * Resolution_s - Center_s; float image_z = (Zindex + 0.5) * Resolution_z - Center_z;           // image pixel in ground coordinate
+	// image pixel in ground coordinate
+	double image_t = (Tindex + 0.5) * Resolution_t - Center_t;  
+	double image_s = (Sindex + 0.5) * Resolution_s - Center_s; 
+	double image_z = (Zindex + 0.5) * Resolution_z - Center_z;
 
 	// rotate in ground coordinate
 	double dect_t = image_t * cos(Beta) + image_s * sin(Beta);
@@ -44,6 +47,7 @@ __global__ void BackProjection(const float *dev_R, float *dev_Display, const dou
 	double Xig1 = 0, Xig2 = 0, P1 = 0, P2 = 0;
 	double Display_pBeta = 0;
 	double backweight = 0;
+	double LengthinROI = 0;
 
 	if ((P >= minP) && (P < maxP) && (Xigama >= minXigama) && (Xigama < maxXigama))
 	{
@@ -59,39 +63,30 @@ __global__ void BackProjection(const float *dev_R, float *dev_Display, const dou
 		Xig1 = fabs(Xigama - Xigama_domain1); Xig2 = fabs(Xigama_domain2 - Xigama);
 		P1 = fabs(P - P_domain1); P2 = fabs(P_domain2 - P);
 
-		//Display_pBeta = 1;
 		Display_pBeta = (Xig2 * P2 * dev_R[betaIndex * LP * LXigama + XigamaN1index * LP + PN1index]
 			+ Xig1 * P2 * dev_R[betaIndex * LP * LXigama + XigamaN2index * LP + PN1index] + Xig2 * P1 * dev_R[betaIndex * LP * LXigama + XigamaN1index * LP + PN2index]
 			+ Xig1 * P1 * dev_R[betaIndex * LP * LXigama + XigamaN2index * LP  + PN2index]) / (PInt * XigamaInt);
 
-		// compute weight of backproject
-		double backweight = 0;
-		// the way to compute backweight is to get the cross length in the specific pixel and the whole ROI
+	//	 the way to compute backweight is to get the cross length in the specific pixel and the whole ROI
 
-		// according to euler equation   
+	//	 according to euler equation   
 		double source_t = Center_t - Distance * sin(Beta);      // define the source in matlab coordinate														
 		double source_s = Center_s + Distance * cos(Beta);
 		double source_z = Center_z;
+		
+		// in matlab coordinate
+		//  assume the projection line go through the center of the current pixel 
+		double DetectPoint_tend = image_t + Center_t;
+		double DetectPoint_send = image_s + Center_s;
+		double DetectPoint_zend = image_z + Center_z;
 
-		double Gama = atan(Xigama / Distance);          // radian angle in s - z coordinate plane
-		double Distance_shift = Distance / cos(Gama);    // length of DO'
+	//	first compute length in whole ROI
+	//	 actual Size
+		double tlow = 0, thigh = t_length * Resolution_t, slow = 0, shigh = s_length * Resolution_s,
+			zlow = 0, zhigh = z_length * Resolution_z;
 
-		double Theta = atan(P / Distance_shift);        // radian angle in s'-t coordinate plane 
-
-		double Smax = 2 * Distance;
-
-		// define end detect point in matlab coordinate, Note that : 0 is the start
-		double DetectPoint_tend = Center_t + Smax * sin(Theta) * cos(Beta) - (Distance - Smax * cos(Theta) * cos(Gama)) * sin(Beta);
-		double DetectPoint_send = Center_s + Smax * sin(Theta) * sin(Beta) + (Distance - Smax * cos(Theta) * cos(Gama)) * cos(Beta);
-		double DetectPoint_zend = Center_z + Smax * cos(Theta) * sin(Gama);
-
-		//first compute length in whole ROI
-		// actual Size
-		double tlow = 0, thigh = t_length*Resolution_t, slow = 0, shigh = s_length*Resolution_s,
-			zlow = 0, zhigh = z_length*Resolution_z;
-
-		//compute the first and last point in the ROI
-		// using DetectPoint_end set up projection equation
+	//	compute the first and last point in the ROI
+	//	 using DetectPoint_end set up projection equation
 		double tlow_s = source_s + (tlow - source_t) * (DetectPoint_send - source_s) / (DetectPoint_tend - source_t);
 		double tlow_z = source_z + (tlow - source_t) * (DetectPoint_zend - source_z) / (DetectPoint_tend - source_t);
 		double thigh_s = source_s + (thigh - source_t) * (DetectPoint_send - source_s) / (DetectPoint_tend - source_t);
@@ -107,7 +102,7 @@ __global__ void BackProjection(const float *dev_R, float *dev_Display, const dou
 		double zhigh_t = source_t + (zhigh - source_z) * (DetectPoint_tend - source_t) / (DetectPoint_zend - source_z);
 		double zhigh_s = source_s + (zhigh - source_z) * (DetectPoint_send - source_s) / (DetectPoint_zend - source_z);
 
-		//double *Range = new double [6];   //  XYXY small-big(number)
+	//	double *Range = new double [6];   //  XYXY small-big(number)
 		double T1 = 0, S1 = 0, Z1 = 0, T2 = 0, S2 = 0, Z2 = 0;
 
 		if (tlow_s >= 0 && tlow_s <= shigh && tlow_z >= 0 && tlow_z <= zhigh)
@@ -196,18 +191,20 @@ __global__ void BackProjection(const float *dev_R, float *dev_Display, const dou
 			return;
 		}
 
-		double LengthinROI = Distance(T1, S1, Z1, T2, S2, Z2);
+		LengthinROI = Distance(T1, S1, Z1, T2, S2, Z2);
 
-		//secondly compute length in a single pixel, the process is very similar to the previous.
-		//because this time the line goes through the center point of the pixel. So some kind of symmetry happens.
-		//since the global function can not call exterior function, so the previous code will be copied here.
+	//	secondly compute length in a single pixel, the process is very similar to the previous.
+	//	because this time the line goes through the center point of the pixel. So some kind of symmetry happens.
+	//	since the global function can not call exterior function, so the previous code will be copied here.
 
-		// actual Size
-		tlow = Tindex * Resolution_t - Center_t; thigh = (Tindex + 1)*Resolution_t - Center_t; slow = Sindex * Resolution_s - Center_s; shigh = (Sindex + 1)*Resolution_s - Center_s;
-			zlow = Zindex * Resolution_z - Center_z; zhigh = (Zindex + 1)*Resolution_z - Center_z;
+	//	 actual Size in matlab coordinate
+		tlow = Tindex * Resolution_t; thigh = (Tindex + 1) * Resolution_t; 
+		slow = Sindex * Resolution_s; shigh = (Sindex + 1) * Resolution_s;
+		zlow = Zindex * Resolution_z; zhigh = (Zindex + 1) * Resolution_z;
 
-		//compute the first and last point in the ROI
-		// using DetectPoint_end set up projection equation
+	//	compute the first and last point in the ROI
+	//	 using DetectPoint_end set up projection equation
+
 		tlow_s = source_s + (tlow - source_t) * (DetectPoint_send - source_s) / (DetectPoint_tend - source_t);
 		tlow_z = source_z + (tlow - source_t) * (DetectPoint_zend - source_z) / (DetectPoint_tend - source_t);
 
@@ -217,30 +214,36 @@ __global__ void BackProjection(const float *dev_R, float *dev_Display, const dou
 		zlow_t = source_t + (zlow - source_z) * (DetectPoint_tend - source_t) / (DetectPoint_zend - source_z);
 		zlow_s = source_s + (zlow - source_z) * (DetectPoint_send - source_s) / (DetectPoint_zend - source_z);
 
-		//double *Range = new double [6];   //  XYXY small-big(number)
+	//	double *Range = new double [6];   //  XYXY small-big(number)
 		T1 = 0; S1 = 0; Z1 = 0; T2 = 0; S2 = 0; Z2 = 0;
 
-		if (tlow_s >= 0 && tlow_s <= shigh && tlow_z >= 0 && tlow_z <= zhigh)
+		if (tlow_s >= slow && tlow_s <= shigh && tlow_z >= zlow && tlow_z <= zhigh)
 		{
 			T1 = tlow; S1 = tlow_s; Z1 = tlow_z;
-			T2 = 2 * ((Tindex + 0.5)*Resolution_t - Center_t) - T1; S2 = 2 * ((Sindex + 0.5)*Resolution_s - Center_s) - S1; Z2 = 2 * ((Zindex + 0.5)*Resolution_z - Center_z) - Z1;
-			//symmetry
+			T2 = 2 * DetectPoint_tend - T1; 
+			S2 = 2 * DetectPoint_send - S1; 
+			Z2 = 2 * DetectPoint_zend - Z1;
+	//		symmetry
 		}
-		else if (slow_t >= 0 && slow_t <= thigh && slow_z >= 0 && slow_z <= zhigh)
+		else if (slow_t >= tlow && slow_t <= thigh && slow_z >= zlow && slow_z <= zhigh)
 		{
 			T1 = slow_t; S1 = slow; Z1 = slow_z;
-			T2 = 2 * ((Tindex + 0.5)*Resolution_t - Center_t) - T1; S2 = 2 * ((Sindex + 0.5)*Resolution_s - Center_s) - S1; Z2 = 2 * ((Zindex + 0.5)*Resolution_z - Center_z) - Z1;
-			//symmetry
+			T2 = 2 * DetectPoint_tend - T1; 
+			S2 = 2 * DetectPoint_send - S1; 
+			Z2 = 2 * DetectPoint_zend - Z1;
+	//		symmetry
 		}
-		else if (zlow_t >= 0 && zlow_t <= thigh && zlow_s >= 0 && zlow_s <= shigh)
+		else if (zlow_t >= tlow && zlow_t <= thigh && zlow_s >= slow && zlow_s <= shigh)
 		{
 			T1 = zlow_t; S1 = zlow_s; Z1 = zlow;
-			T2 = 2 * ((Tindex + 0.5)*Resolution_t - Center_t) - T1; S2 = 2 * ((Sindex + 0.5)*Resolution_s - Center_s) - S1; Z2 = 2 * ((Zindex + 0.5)*Resolution_z - Center_z) - Z1;
-			//symmetry		
+			T2 = 2 * DetectPoint_tend - T1; 
+			S2 = 2 * DetectPoint_send - S1; 
+			Z2 = 2 * DetectPoint_zend - Z1;
+	//		symmetry		
 		}
 		else
 		{
-			//dev_Projection[threadid] = threadid;
+	//		dev_Projection[threadid] = threadid;
 			return;
 		}
 
@@ -370,7 +373,7 @@ cudaError_t BackPro(float *Display, const float *R, const float *Xigamadomain, c
 	cudaStatus = cudaMemcpy(dev_BetaScanRange, BetaScanRange, LBeta * sizeof(float), cudaMemcpyHostToDevice);
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaMemcpy BetaScanRange failed!\n");
-		mexPrintf("cudaMemcpy v failed! %s\n", cudaGetErrorString(cudaStatus));
+		mexPrintf("cudaMemcpy BetaScanRange failed! %s\n", cudaGetErrorString(cudaStatus));
 		goto Error;
 	}
 
@@ -448,6 +451,6 @@ Error:
 	cudaFree(dev_Display);
 	cudaFree(dev_Size);
 
-	mexPrintf("Exit FDK\n");
+	mexPrintf("Exit Bakprojection\n");
 	return cudaStatus;
 }

@@ -23,7 +23,8 @@ using namespace std;
 
 #define MIN(x,y) x<y?x:y
 #define MAX(x,y) x>y?x:y
-#define Distance(x1,y1,z1,x2,y2,z2) sqrt(pow2(x1-x2)+pow2(y1-y2)+pow2(z1-z2))
+#define pow2(x) (1.0*(x)*(x))
+#define Distance(x1,y1,z1,x2,y2,z2) (sqrt(pow2(x1-x2)+pow2(y1-y2)+pow2(z1-z2)))
 
 cudaError_t BackPro(float *Display, const float *R, const float *Xigamadomain, const float *Pdomain,
 	const float *BetaScanRange, const double Distance, const int LBeta, const int LP, const int LXigama,
