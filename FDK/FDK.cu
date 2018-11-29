@@ -109,8 +109,10 @@ __global__ void BackProjection(const float *dev_Rcov, float *dev_Display, const 
 		double Weight = sqrt(1 + 0 * pow2(dect_z) / (pow2(Distance + dect_s) + pow2(dect_t)));
 		//Display_pBeta = 1;
 		Display_pBeta = (Xig2 * P2 * dev_Rcov[betaIndex * LP * LXigama + XigamaN1index * LP + PN1index]
-			+ Xig1 * P2 * dev_Rcov[betaIndex * LP * LXigama + XigamaN2index * LP + PN1index] + Xig2 * P1 * dev_Rcov[betaIndex * LP * LXigama + XigamaN1index * LP + PN2index]
-			+ Xig1 * P1 * dev_Rcov[betaIndex * LP * LXigama + XigamaN2index * LP  + PN2index]) / (PInt * XigamaInt) * pow2(LengthRatio) * BetaScanInt * Weight;
+			+ Xig1 * P2 * dev_Rcov[betaIndex * LP * LXigama + XigamaN2index * LP + PN1index] 
+			+ Xig2 * P1 * dev_Rcov[betaIndex * LP * LXigama + XigamaN1index * LP + PN2index]
+			+ Xig1 * P1 * dev_Rcov[betaIndex * LP * LXigama + XigamaN2index * LP  + PN2index]) 
+			/ (PInt * XigamaInt) * pow2(LengthRatio) * BetaScanInt * Weight;
 	}
 
 	dev_Display[thread_id] += Display_pBeta;
