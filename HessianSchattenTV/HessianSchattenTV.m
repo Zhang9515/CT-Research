@@ -38,9 +38,9 @@ DisRatio = 4 ;
 Distance = 103.9; % Rpic * DisRatio ;                     % distance between source and center point
 
 FanAmax = atan ( MaxP / ( Distance - Rplane ) ) ; 
-BetaScanInt = 1.5 ;             % scanning internal    ( 0.3 exact )           
+BetaScanInt = deg2rad(1) ;             % scanning internal    ( 0.3 exact )           
 % MaxBeta = 180 + 2 * FanAmax * 180 / pi ;         % short scan 
-MaxBeta = 360 ;
+MaxBeta = deg2rad(360) ;
 BetaScanRange = BetaScanInt : BetaScanInt : MaxBeta  ;     % scanning range , angle between SO and aixs Y
 BetaScanRange = single(BetaScanRange');
 LBeta = length ( BetaScanRange ) ; 
@@ -51,16 +51,17 @@ LBeta = length ( BetaScanRange ) ;
 
 picvector = reshape (pic, t_length * s_length * z_length, 1);
 clear pic ;
+% angle input should be radian ! 
 V = ProjectionCone_3D (picvector, t_length, s_length, z_length, Size, BetaScanRange, Pdomain, Xigamadomain, Distance);
-% R = reshape ( R , LP , LXigama, LBeta ) ;
+V = reshape ( V , LP , LXigama, LBeta ) ;
 % figure,imshow3Dfull(R,[])
 % clear picvector;
 
 V = single(V) ;
-% z_length = 30;
+z_length = 30;
 FDKresult = FDK ( V , Xigamadomain , Pdomain , BetaScanRange , Distance, Size, t_length, s_length, z_length) ;
-
-% figure,imshow3Dfull(FDKresult , [] )
+% FDKresult = reshape( FDKresult, t_length, s_length, z_length ) ;
+% figure,imshow3Dfull( FDKresult , [] )
 %  
 %% hybrid HS with TV iterative method
 
