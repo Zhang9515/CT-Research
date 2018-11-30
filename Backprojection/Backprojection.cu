@@ -70,7 +70,8 @@ __global__ void BackProjection(const float *dev_R, float *dev_Display, const dou
 	//	 the way to compute backweight is to get the cross length in the specific pixel and the whole ROI
 
 	//	 according to euler equation   
-		double source_t = Center_t - Distance * sin(Beta);      // define the source in matlab coordinate														
+		// define the source in matlab coordinate
+		double source_t = Center_t - Distance * sin(Beta);      														
 		double source_s = Center_s + Distance * cos(Beta);
 		double source_z = Center_z;
 		
@@ -108,82 +109,107 @@ __global__ void BackProjection(const float *dev_R, float *dev_Display, const dou
 		if (tlow_s >= 0 && tlow_s <= shigh && tlow_z >= 0 && tlow_z <= zhigh)
 		{
 			T1 = tlow; S1 = tlow_s; Z1 = tlow_z;
-			if (thigh_s >= 0 && thigh_s <= shigh && thigh_z >= 0 && thigh_z <= zhigh)
+			if (thigh_s >= 0 && thigh_s <= shigh && thigh_s != S1
+				&& thigh_z >= 0 && thigh_z <= zhigh && thigh_z != Z1)
 			{
 				T2 = thigh; S2 = thigh_s; Z2 = thigh_z;
 			}
-			else if (slow_t >= 0 && slow_t <= thigh && slow_z >= 0 && slow_z <= zhigh)
+			else if (slow_t >= 0 && slow_t <= thigh && slow_t != T1
+				&& slow_z >= 0 && slow_z <= zhigh && slow_z != Z1)
 			{
 				T2 = slow_t; S2 = slow; Z2 = slow_z;
 			}
-			else if (shigh_t >= 0 && shigh_t <= thigh && shigh_z >= 0 && shigh_z <= zhigh)
+			else if (shigh_t >= 0 && shigh_t <= thigh && shigh_t != T1
+				&& shigh_z >= 0 && shigh_z <= zhigh && shigh_z != Z1)
 			{
 				T2 = shigh_t; S2 = shigh; Z2 = shigh_z;
 			}
-			else if (zlow_t >= 0 && zlow_t <= thigh && zlow_s >= 0 && zlow_s <= shigh)
+			else if (zlow_t >= 0 && zlow_t <= thigh && zlow_t != T1
+				&& zlow_s >= 0 && zlow_s <= shigh && zlow_s != S1)
 			{
 				T2 = zlow_t; S2 = zlow_s; Z2 = zlow;
 			}
-			else if (zhigh_t >= 0 && zhigh_t <= thigh && zhigh_s >= 0 && zhigh_s <= shigh)
+			else if (zhigh_t >= 0 && zhigh_t <= thigh && zhigh_t != T1
+				&& zhigh_s >= 0 && zhigh_s <= shigh && zhigh_s != S1)
 			{
 				T2 = zhigh_t; S2 = zhigh_s; Z2 = zhigh;
 			}
+			else
+				return;
 		}
 		else if (thigh_s >= 0 && thigh_s <= shigh && thigh_z >= 0 && thigh_z <= zhigh)
 		{
 			T1 = thigh; S1 = thigh_s; Z1 = thigh_z;
-			if (slow_t >= 0 && slow_t <= thigh && slow_z >= 0 && slow_z <= zhigh)
+			if (slow_t >= 0 && slow_t <= thigh && slow_t != T1
+				&& slow_z >= 0 && slow_z <= zhigh && slow_z != Z1)
 			{
 				T2 = slow_t; S2 = slow; Z2 = slow_z;
 			}
-			else if (shigh_t >= 0 && shigh_t <= thigh && shigh_z >= 0 && shigh_z <= zhigh)
+			else if (shigh_t >= 0 && shigh_t <= thigh && shigh_t != T1
+				&& shigh_z >= 0 && shigh_z <= zhigh && shigh_z != Z1)
 			{
 				T2 = shigh_t; S2 = shigh; Z2 = shigh_z;
 			}
-			else if (zlow_t >= 0 && zlow_t <= thigh && zlow_s >= 0 && zlow_s <= shigh)
+			else if (zlow_t >= 0 && zlow_t <= thigh && zlow_t != T1
+				&& zlow_s >= 0 && zlow_s <= shigh && zlow_s != S1)
 			{
 				T2 = zlow_t; S2 = zlow_s; Z2 = zlow;
 			}
-			else if (zhigh_t >= 0 && zhigh_t <= thigh && zhigh_s >= 0 && zhigh_s <= shigh)
+			else if (zhigh_t >= 0 && zhigh_t <= thigh && zhigh_t != T1
+				&& zhigh_s >= 0 && zhigh_s <= shigh && zhigh_s != S1)
 			{
 				T2 = zhigh_t; S2 = zhigh_s; Z2 = zhigh;
 			}
+			else
+				return;
 		}
 		else if (slow_t >= 0 && slow_t <= thigh && slow_z >= 0 && slow_z <= zhigh)
 		{
 			T1 = slow_t; S1 = slow; Z1 = slow_z;
-			if (shigh_t >= 0 && shigh_t <= thigh && shigh_z >= 0 && shigh_z <= zhigh)
+			if (shigh_t >= 0 && shigh_t <= thigh && shigh_t != T1
+				&& shigh_z >= 0 && shigh_z <= zhigh && shigh_z != Z1)
 			{
 				T2 = shigh_t; S2 = shigh; Z2 = shigh_z;
 			}
-			else if (zlow_t >= 0 && zlow_t <= thigh && zlow_s >= 0 && zlow_s <= shigh)
+			else if (zlow_t >= 0 && zlow_t <= thigh && zlow_t != T1
+				&& zlow_s >= 0 && zlow_s <= shigh && zlow_s != S1)
 			{
 				T2 = zlow_t; S2 = zlow_s; Z2 = zlow;
 			}
-			else if (zhigh_t >= 0 && zhigh_t <= thigh && zhigh_s >= 0 && zhigh_s <= shigh)
+			else if (zhigh_t >= 0 && zhigh_t <= thigh && zhigh_t != T1
+				&& zhigh_s >= 0 && zhigh_s <= shigh && zhigh_s != S1)
 			{
 				T2 = zhigh_t; S2 = zhigh_s; Z2 = zhigh;
 			}
+			else
+				return;
 		}
 		else if (shigh_t >= 0 && shigh_t <= thigh && shigh_z >= 0 && shigh_z <= zhigh)
 		{
 			T1 = shigh_t; S1 = shigh; Z1 = shigh_z;
-			if (zlow_t >= 0 && zlow_t <= thigh && zlow_s >= 0 && zlow_s <= shigh)
+			if (zlow_t >= 0 && zlow_t <= thigh && zlow_t != T1
+				&& zlow_s >= 0 && zlow_s <= shigh && zlow_s != S1)
 			{
 				T2 = zlow_t; S2 = zlow_s; Z2 = zlow;
 			}
-			else if (zhigh_t >= 0 && zhigh_t <= thigh && zhigh_s >= 0 && zhigh_s <= shigh)
+			else if (zhigh_t >= 0 && zhigh_t <= thigh && zhigh_t != T1
+				&& zhigh_s >= 0 && zhigh_s <= shigh && zhigh_s != S1)
 			{
 				T2 = zhigh_t; S2 = zhigh_s; Z2 = zhigh;
 			}
+			else
+				return;
 		}
 		else if (zlow_t >= 0 && zlow_t <= thigh && zlow_s >= 0 && zlow_s <= shigh)
 		{
 			T1 = zlow_t; S1 = zlow_s; Z1 = zlow;
-			if (zhigh_t >= 0 && zhigh_t <= thigh && zhigh_s >= 0 && zhigh_s <= shigh)
+			if (zhigh_t >= 0 && zhigh_t <= thigh && zhigh_t != T1
+				&& zhigh_s >= 0 && zhigh_s <= shigh && zhigh_s != S1)
 			{
 				T2 = zhigh_t; S2 = zhigh_s; Z2 = zhigh;
 			}
+			else
+				return;
 		}
 		else
 		{
@@ -192,7 +218,12 @@ __global__ void BackProjection(const float *dev_R, float *dev_Display, const dou
 		}
 
 		LengthinROI = Distance(T1, S1, Z1, T2, S2, Z2);
-
+		if (T1 == T2 && S1 == S2 && Z1 == Z2)
+		{
+			dev_Display[thread_id] += T1 * 100000 + S1 * 1000 + Z1 * 10;
+			return;
+		}
+			
 	//	secondly compute length in a single pixel, the process is very similar to the previous.
 	//	because this time the line goes through the center point of the pixel. So some kind of symmetry happens.
 	//	since the global function can not call exterior function, so the previous code will be copied here.
@@ -220,25 +251,16 @@ __global__ void BackProjection(const float *dev_R, float *dev_Display, const dou
 		if (tlow_s >= slow && tlow_s <= shigh && tlow_z >= zlow && tlow_z <= zhigh)
 		{
 			T1 = tlow; S1 = tlow_s; Z1 = tlow_z;
-			T2 = 2 * DetectPoint_tend - T1; 
-			S2 = 2 * DetectPoint_send - S1; 
-			Z2 = 2 * DetectPoint_zend - Z1;
 	//		symmetry
 		}
 		else if (slow_t >= tlow && slow_t <= thigh && slow_z >= zlow && slow_z <= zhigh)
 		{
 			T1 = slow_t; S1 = slow; Z1 = slow_z;
-			T2 = 2 * DetectPoint_tend - T1; 
-			S2 = 2 * DetectPoint_send - S1; 
-			Z2 = 2 * DetectPoint_zend - Z1;
 	//		symmetry
 		}
 		else if (zlow_t >= tlow && zlow_t <= thigh && zlow_s >= slow && zlow_s <= shigh)
 		{
 			T1 = zlow_t; S1 = zlow_s; Z1 = zlow;
-			T2 = 2 * DetectPoint_tend - T1; 
-			S2 = 2 * DetectPoint_send - S1; 
-			Z2 = 2 * DetectPoint_zend - Z1;
 	//		symmetry		
 		}
 		else
@@ -247,7 +269,9 @@ __global__ void BackProjection(const float *dev_R, float *dev_Display, const dou
 			return;
 		}
 
-		double LengthinPixel = Distance(T1, S1, Z1, T2, S2, Z2);
+		double LengthinPixel = 2 * Distance(T1, S1, Z1, DetectPoint_tend, DetectPoint_send, DetectPoint_zend);
+		//if (LengthinROI == 0)
+		//	return;
 		backweight = LengthinPixel / LengthinROI ; 
 	}
 
