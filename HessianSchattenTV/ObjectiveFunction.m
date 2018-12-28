@@ -3,6 +3,7 @@ function Fai = ObjectiveFunction( ProjectionData, AU , U, OrderofHS, Tao)
     datalength = numel( U ) ;
     Hsnorm = 0 ;
     HSLOG3D = HessianLOG3D( U ) ; 
+    
     for i = 1 : datalength
         svd_pixel = svd ( squeeze( HSLOG3D( : , : , i ) ) ) ;
         Hsnorm = Hsnorm + sum( svd_pixel.^OrderofHS )^( 1 / OrderofHS ) ;        

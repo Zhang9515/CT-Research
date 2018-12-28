@@ -53,12 +53,12 @@ picvector = reshape (pic, t_length * s_length * z_length, 1);
 clear pic ;
 % angle input should be radian ! 
 V = ProjectionCone_3D (picvector, t_length, s_length, z_length, Size, BetaScanRange, Pdomain, Xigamadomain, Distance);
-V = reshape ( V , LP , LXigama, LBeta ) ;
+% V = reshape ( V , LP , LXigama, LBeta ) ;
 % figure,imshow3Dfull(R,[])
 % clear picvector;
 
 V = single(V) ;
-z_length = 30;
+% z_length = 30;
 FDKresult = FDK ( V , Xigamadomain , Pdomain , BetaScanRange , Distance, Size, t_length, s_length, z_length) ;
 % FDKresult = reshape( FDKresult, t_length, s_length, z_length ) ;
 % figure,imshow3Dfull( FDKresult , [] )
@@ -66,16 +66,19 @@ FDKresult = FDK ( V , Xigamadomain , Pdomain , BetaScanRange , Distance, Size, t
 %% hybrid HS with TV iterative method
 
 OrderofHS = 2 ; 
-alpha = 2e10 ;   % 2e10 according to paper 
-Tao = 1 ; LipschitzConstant = 144 * Tao^2 ; ps =3; 
-Knesterov0 = 1; Kmm0 = 1; ProjectionOnBallofBsq0 = zeros( 3 , 3 , t_length * s_length * z_length ) ;
+alpha = 2e2 ;   % 2e10 according to paper 
+Tao = 1 ; 
+LipschitzConstant = 144 * Tao^2 ; 
+ps =3 ;    % patchsize of Gaussian window 
+Knesterov0 = 1; Kmm0 = 1; 
+ProjectionOnBallofBsq0 = zeros( 3 , 3 , t_length * s_length * z_length ) ;
 U0 = FDKresult ; 
 
 Tmm = 40;   % outerloop
 Tnesterov = 30 ; % innerloop
 
-FDKresult_single = single(FDKresult) ;
-AU = ProjectionCone_3D (FDKresult_single, t_length, s_length, z_length, Size, BetaScanRange, Pdomain, Xigamadomain, Distance) ;
+FDKresult_single = single( FDKresult ) ;
+AU = ProjectionCone_3D ( FDKresult_single, t_length, s_length, z_length, Size, BetaScanRange, Pdomain, Xigamadomain, Distance) ;
 
 Kmmprevious = Kmm0 ;
 
@@ -96,15 +99,17 @@ for tmm = 1 : Tmm
     
     ProjectionData_single = single(  V - ProjectionData ) ;
     Residual = Backprojection( ProjectionData_single , Xigamadomain , Pdomain , BetaScanRange , Distance, Size, t_length, s_length, z_length) ;
+%     Residual = FDK ( ProjectionData_single , Xigamadomain , Pdomain , BetaScanRange , Distance, Size, t_length, s_length, z_length) ;
     
-    qq = reshape(Residual , t_length, s_length, z_length ) ; %
-    figure,imshow3Dfull(qq,[]) %
+%     qq = reshape(Residual , t_length, s_length, z_length ) ; %
+%     figure,imshow3Dfull(qq,[]) %
     
     Z = Xprevious + Residual / alpha ; 
 
     %% Nesterov method: orthogonal projections , to update omega, we use the result of ProjectionOnBallofBsq as 
       % Omega 
-    Knesterovprevious = Knesterov0 ; ProjectionOnBallofBsqprevious = ProjectionOnBallofBsq0 ;
+    Knesterovprevious = Knesterov0 ; 
+    ProjectionOnBallofBsqprevious = ProjectionOnBallofBsq0 ;
     Omegaprevious = ProjectionOnBallofBsq0 ; 
     
     for tnesterov = 1 : Tnesterov
@@ -130,13 +135,15 @@ for tmm = 1 : Tmm
                 
           end %n pixel
           Knesterovcurrent = ( 1 + sqrt( 1 + Knesterovprevious^2 ) ) / 2 ;
-          Omegacurrent = ProjectionOnBallofBsqprevious + ( Knesterovprevious - 1 ) / Knesterovcurrent .* ( ProjectionOnBallofBsq - ProjectionOnBallofBsqprevious ) ;
+          Omegacurrent = ProjectionOnBallofBsqprevious ...
+                     + ( Knesterovprevious - 1 ) / Knesterovcurrent .* ( ProjectionOnBallofBsq - ProjectionOnBallofBsqprevious ) ;
           % stop condition
           if ( StopDeterminer( ProjectionOnBallofBsq , ProjectionOnBallofBsqprevious , inner_threshold ) )
               break ;
           end
           Knesterovprevious = Knesterovcurrent ;
-          Omegaprevious = Omegacurrent;         
+          Omegaprevious = Omegacurrent;  
+          ProjectionOnBallofBsqprevious = ProjectionOnBallofBsq ; 
     end  %nesterov
     
     S = Z - Tao * HstarOmega( ProjectionOnBallofBsqprevious , ps) ;
