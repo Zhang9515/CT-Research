@@ -8,8 +8,7 @@ function result = HessianLOG3D( input )
     
     for i = 1 : 3
         for j = 1 : 3
-            num = ( j -1) * 3 + i ;  
-            result( i , j , : ) = reshape ( conv( input , H( num , : , : , : ) , 'same' ) , Lx * Ly * Lz , 1 ) ;
+            result( i , j , : ) = reshape ( convn( input , H( i , j , : , : , : ) , 'same' ) , Lx * Ly * Lz , 1 ) ;
         end
     end
   

@@ -34,8 +34,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[])
 		LP, LXigama, Size, t_length, s_length, z_length);
 
 	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "FDK failed!\n");
-		mexPrintf("FDK failed!\n");
+		fprintf(stderr, "BackPro failed!\n");
+		mexPrintf("BackPro failed!\n");
 		return;
 	}
 
