@@ -4,7 +4,7 @@ function H_omega = HstarOmega( omega , ps )
 % X : from left to right; Y : from down to up; Z : from near to far
 %input: omega: 3-3-N, ps: length of patch; output: H_omega: N-1 
     [~, ~, sizeofData] = size ( omega ) ;
-    H = HessianLOGtemplate3D( ps ) ;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            = HessianLOGtemplate3D( ps ) ;
     
     omega_stack = repmat ( omega , 1, 1, 1, ps, ps, ps) ;
     H_omega = zeros( sizeofData , 1 ) ; 
