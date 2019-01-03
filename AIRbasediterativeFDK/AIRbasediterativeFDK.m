@@ -19,6 +19,11 @@
 Input0 = phantom3d( 'Modified Shepp-Logan' , 128 ) ;
 sizeofData = [ 128 , 128 , 128 ] ;
 patchsize = 3 ; 
+X = zeros ( prod(sizeofData) , 1 ) ;
+Z = zeros ( prod(sizeofData) , 3 ) ;
+U = zeros ( prod(sizeofData) , 3 ) ;
+
+
 
 for i = 1 : 128 
     Input( : , : , i ) = imnoise ( squeeze( Input0( : , : , i ) )  ,'salt & pepper',0.02 ) ;
