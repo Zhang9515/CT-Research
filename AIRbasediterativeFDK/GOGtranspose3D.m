@@ -24,7 +24,7 @@ function output = GOGtranspose3D( gradient, ps , sizeofData )
         G_transpose( : , : , : , ps - num +1 ) = c ;
     
    for i =1 : 3
-        output = output + convn( gradient( : , : , : , i ) , G_transpose ( ) , 'same' ) ;
+        output = output + convn( gradient( : , : , : , i ) , G_transpose ( : , : , : , i  ) , 'same' ) ;
    end
    
    output = reshape( output , prod( sizeofData ) ,1 ) ;
