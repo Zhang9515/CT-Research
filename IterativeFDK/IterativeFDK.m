@@ -335,7 +335,7 @@ for iteration = 1 :iterEnd
         Display_mod(t,:,:) = Display( t , : ,  : ) - Display_mod(t,:,:);
 
     end
-    RMSE_MOD(iteration) = RMSE3d ( Display_mod , pic);
+    RMSE_MOD(iteration) = RMSE3d ( Display_mod , pic ) ;
 end
 % figure , imshow ( flipud ( squeeze( Display( 64 , : ,  : ))' ) , [0 1] ) ; 
 figure , imshow ( flipud ( squeeze( Display_mod( 64 , : ,  : ))' ) , [0 1] ) ; 

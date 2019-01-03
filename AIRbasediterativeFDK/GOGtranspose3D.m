@@ -5,6 +5,7 @@ function output = GOGtranspose3D( gradient, ps , sizeofData )
     % input: gradient3D: N(=X*Y*Z )-3 ; output:  N(=X*Y*Z )-1
     
     G = GradientOfGaussiantemplate3D( ps ) ;
+    gradient = reshape( gradient , [ sizeofData , 3 ] ) ;
     output = zeros ( sizeofData ) ;
     
      % actually we are computing the adjoint of hessian3D matrix
@@ -24,7 +25,7 @@ function output = GOGtranspose3D( gradient, ps , sizeofData )
         G_transpose( : , : , : , ps - num +1 ) = c ;
     
    for i =1 : 3
-        output = output + convn( gradient( : , : , : , i ) , G_transpose ( : , : , : , i  ) , 'same' ) ;
+        output = output + convn( squeeze( gradient( : , : , : , i )) , squeeze( G_transpose ( : , : , : , i  )) , 'same' ) ;
    end
    
    output = reshape( output , prod( sizeofData ) ,1 ) ;
