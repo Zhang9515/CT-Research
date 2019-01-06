@@ -22,7 +22,8 @@
 tic 
 clear;
 Size = [ 60 ; 60 ; 60 ] ;     % actual range 60
-pic = phantom3d ( 'Modified Shepp-Logan' , 65 ) ;     % original picture  
+% pic = phantom3d ( 'Modified Shepp-Logan' , 65 ) ;     % original picture  
+pic = Diskphantom ( 129 ) ;
 % load ( ' D:\TestCpp\CT\Data\FDK\SFBPimage3.mat ' ) ;       % head ct data
 % pic = double ( SFBPimage ) ;
 % load ( ' D:\TestCpp\CT\Data\FDK\Chest256_160.mat ' ) ;       % chest ct data
@@ -295,7 +296,7 @@ R = reshape ( R , LP , LXigama, LBeta ) ;
 % % figure , imshow ( squeeze ( R ( : , 331  , : ) ) , [] ) ; 
 %% GPU accelerate the preweight & filteration & backprojection
 % load R1
-z_length = 30;
+z_length = 129;
 R= single(R) ;
 Display = FDK ( R , Xigamadomain , Pdomain , BetaScanRange , Distance, Size, t_length, s_length, z_length) ;
 Display = reshape ( Display , t_length , s_length , z_length ) ;
