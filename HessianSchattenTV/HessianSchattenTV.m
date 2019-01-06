@@ -71,7 +71,7 @@ Tao = 1 ;
 LipschitzConstant = 144 * Tao^2 ; 
 ps =3 ;    % patchsize of Gaussian window 
 Knesterov0 = 1; Kmm0 = 1; 
-ProjectionOnBallofBsq0 = zeros( 3 , 3 , t_length * s_length * z_length ) ;
+ProjectionOnBallofBsq0 = zeros( 3 , 3 , t_length , s_length , z_length ) ;
 U0 = FDKresult ; 
 
 Tmm = 40;   % outerloop
@@ -120,20 +120,22 @@ for tmm = 1 : Tmm
     
           GradientofG = Tao * HessianLOG3D( ProjectionOnRN ) ;
           ProjectionOnBallofBsq = Omegaprevious + GradientofG / LipschitzConstant ; 
-          for n = 1 : t_length * s_length * z_length
-
-                % q = 2, OrderofHS = p =2 , 1/p + 1/q = 1
-                if ( OrderofHS == 2 )
-                    Fnorm = norm ( ProjectionOnBallofBsq( : , : , n ), 'fro' ) ;
-                    if ( Fnorm > 1 )
-                        ProjectionOnBallofBsq( : , : , n ) = ProjectionOnBallofBsq( : , : , n ) / Fnorm ;
-                    end
-                
-                % q = inf , OrderofHS = p =1, 1/p + 1/q = 1
-                %     [ Usvd, ProjectionOnBallofBsq, Vsvd ] = svd ( ProjectionOnBallofBsq( : , : , n ) ) ; 
-                end
-                
-          end %n pixel
+          for i = 1 : t_length * s_length * z_length
+                for j = 1 : s_length
+                    for k = 1 : z_length
+                            % q = 2, OrderofHS = p =2 , 1/p + 1/q = 1
+                            if ( OrderofHS == 2 )
+                                Fnorm = norm ( ProjectionOnBallofBsq( : , : , i , j , k ), 'fro' ) ;
+                                if ( Fnorm > 1 )
+                                    ProjectionOnBallofBsq( : , : , i , j , k ) = ProjectionOnBallofBsq( : , : , i , j , k ) / Fnorm ;
+                                end
+                            % q = inf , OrderofHS = p =1, 1/p + 1/q = 1
+                            %     [ Usvd, ProjectionOnBallofBsq, Vsvd ] = svd ( ProjectionOnBallofBsq( : , : , n ) ) ; 
+                            end
+                            
+                    end  %k pixel
+                end  %j pixel          
+          end %i pixel
           Knesterovcurrent = ( 1 + sqrt( 1 + Knesterovprevious^2 ) ) / 2 ;
           Omegacurrent = ProjectionOnBallofBsqprevious ...
                      + ( Knesterovprevious - 1 ) / Knesterovcurrent .* ( ProjectionOnBallofBsq - ProjectionOnBallofBsqprevious ) ;
@@ -151,7 +153,7 @@ for tmm = 1 : Tmm
     AS = ProjectionCone_3D (S_single, t_length, s_length, z_length, Size, BetaScanRange, Pdomain, Xigamadomain, Distance) ;
     Kmmcurrent = ( 1 + sqrt( 1 + Kmmprevious^2 ) ) / 2 ;
     
-    % determine whether the obective function descents in this round of
+    % determine whether the objective function descents in this round of
     % iteration
     Smatrix = reshape( S , t_length, s_length, z_length ) ; 
     Cfaicurrent = ObjectiveFunction( V , AS , Smatrix, OrderofHS, Tao) ;
