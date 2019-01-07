@@ -29,7 +29,7 @@ for tindex = 1 : tlength
     for sindex = 1 : slength
         for zindex = 1 : zlength
                 distance = sqrt ( ( tindex - 0.5 - tlength / 2 )^2 + ( sindex - 0.5 - slength / 2 )^2 ) ; 
-                if distance < ( tan(  6*pi /180 ) * abs( zindex - 0.5 - zlength / 2 ) )
+                if distance < ( tan(  135/2*pi /180 ) * abs( zindex - 0.5 - zlength / 2 ) )
                     DisplayF( tindex , sindex , zindex ) = imgF( tindex , sindex , zindex ) ; 
                 end
         end
