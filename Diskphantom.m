@@ -123,7 +123,8 @@ function [e,n] = parse_inputs(varargin)
 
 n = 128;     % The default size
 e = [];
-defaults = {'shepp-logan', 'modified shepp-logan', 'yu-ye-wang'};
+defaults = {'shepp-logan', 'modified shepp-logan', 'yu-ye-wang', 'elimateonepair', 'translatezonepair'...
+    , 'translatexonepair'};
 
 for i=1:nargin
    if ischar(varargin{i})         % Look for a default phantom
@@ -141,8 +142,12 @@ for i=1:nargin
          e = modified_shepp_logan;
       case 'yu-ye-wang'
          e = yu_ye_wang;
-      case 'ElimateOnePair'
-          e = ElimateOnePair;
+      case 'elimateonepair'
+         e = ElimateOnePair;
+      case 'translatezonepair'
+         e = translatezonepair;
+      case 'translatexonepair'
+         e = translatexonepair;
       end
    elseif numel(varargin{i})==1 
       n = varargin{i};            % a scalar is the image size
@@ -196,6 +201,42 @@ function e = ElimateOnePair
 e =    [  1    .7  .7   .06      0       0       0        0      
             1    .7  .7   .06      0       0      .24        0
             1    .7  .7   .06      0       0       -.24        0
+            1    .7  .7   .06      0       0       .72        0
+            1    .7  .7   .06      0       0       -.72      0 ] ;
+       
+return;
+
+function e = translatezonepair
+%
+%   This head phantom is the same as the Shepp-Logan except 
+%   the intensities are changed to yield higher contrast in
+%   the image.  Taken from Toft, 199-200.
+%      
+%         A      a     b     c     x0      y0      z0    phi 
+%        -----------------------------------------------------
+e =    [  1    .7  .7   .06      0       0       0        0      
+            1    .7  .7   .06      0       0      .24        0
+            1    .7  .7   .06      0       0       -.24        0
+            1    .7  .7   .06      0       0       .48        0
+            1    .7  .7   .06      0       0       -.48        0
+            1    .7  .7   .06      0       0       .72        0
+            1    .7  .7   .06      0       0       -.72      0 ] ;
+       
+return;
+
+function e = translatexonepair
+%
+%   This head phantom is the same as the Shepp-Logan except 
+%   the intensities are changed to yield higher contrast in
+%   the image.  Taken from Toft, 199-200.
+%      
+%         A      a     b     c     x0      y0      z0    phi 
+%        -----------------------------------------------------
+e =    [  1    .7  .7   .06      0       0       0        0      
+            1    .7  .7   .06      0       0      .24        0
+            1    .7  .7   .06      0       0       -.24        0
+            1    .7  .7   .06      0.2       0       .48        0
+            1    .7  .7   .06      0.2       0       -.48        0
             1    .7  .7   .06      0       0       .72        0
             1    .7  .7   .06      0       0       -.72      0 ] ;
        
