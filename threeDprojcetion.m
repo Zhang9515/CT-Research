@@ -36,7 +36,7 @@ pic = single(pic);
 % t_length = PicSize ; s_length = PicSize ; z_length = PicSize ;              % store the size of picture
 Resolution = max ( Size ) / t_length ;                           
 Rpic = max ( Size ) * sqrt ( 3 ) / 2 ;                                         % radius of project (51.9615 for size 60)
-Rplane = max ( Size ) * sqrt ( 2 ) / 2 ;                    % radius of project in the plane
+Rplane = max ( Size ) * sqrt ( 2 ) / 2 ;                    %  circumscribed circle radius of project in the plane
 
 % Projection = zeros ( PicSize , PicSize , PicSize ) ;      %reconstruct the pic
 Resolution2 = max ( Size ) / size ( pic,1 ) ; 
