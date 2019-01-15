@@ -42,13 +42,13 @@ Resolution = [ Size(1) / t_length , Size(2) / s_length , Size(3) / z_length ];
 
 Distance = 207.6 ;              % distance between source and center point ( 207.6 for 60 )
 
-PInt = 0.1 ;                                    %interval of P ( 0.1 exact )
+PInt = 0.08 ;                                    %interval of P ( 0.1 exact )
 MaxP = max ( ( Size(1) / 2 * Distance ) / ( Distance - Size(1) / 2 ) , Rplane * 1.1 );
 Pdomain = - MaxP : PInt : MaxP ;                       % detective range P
 Pdomain = single(Pdomain');
 LP = length ( Pdomain ) ;
 
-XigamaInt = 0.08 ;                                      % interval of Xigama ( 0.1 exact )
+XigamaInt = 0.1 ;                                      % interval of Xigama ( 0.1 exact )
 MaxXigama = ( Size(3) / 2 * Distance ) / ( Distance - Size(1) * sqrt(2) / 2 ) ;       % computed by rule of similar triangle
 MaxXigama = 46.669 ; 
 Xigamadomain = - MaxXigama : XigamaInt : MaxXigama ;                       % detective range Xigama
@@ -65,8 +65,8 @@ BetaScanRange = BetaScanInt : BetaScanInt : MaxBeta  ;     % scanning range , an
 BetaScanRange = single(BetaScanRange');
 LBeta = length ( BetaScanRange ) ; 
 
-% to ensure the projection matrix not too big, here compute LP*LXigama to
-% control its value less than 900*900. if not, split the Beta range
+% to ensure the projection matrix not too big, here compute LP*LXigama*LBeta to
+% control its value less than 400 * 400 * 90. if not, split the Beta range
 % separately 
 
 picvector = reshape (pic, t_length * s_length * z_length, 1);
@@ -103,6 +103,7 @@ for  split = 1 : times
     clear R ;
 end
 Display = reshape ( Display , t_length , s_length , z_lengthrec ) ;
+clear pic picvector
 % figure,imshow3Dfull(Display, [0 0.5], 'grey')
 
 toc

@@ -74,7 +74,7 @@ __global__ void PreWeightFiltration(float *dev_Rcov, float *dev_R, const float *
 
 	dev_R[thread_id] = dev_R[thread_id] * Proportion;    // directly cover the input
 
-	__syncthreads();
+	//__syncthreads();
 	double Rcovsum = 0;
 	// convolution
 
@@ -392,7 +392,7 @@ cudaError_t FDKpro(float *Display, const float *R, const float *Xigamadomain, co
 					}
 					/*mexPrintf("gstart: %d\n", gstart);
 					mexPrintf("gend: %d\n", gend);*/
-					PreWeightFiltration << <block_cubic_residual, thread_cubic >> > (dev_Rcov, dev_R, dev_G, dev_Pdomain,
+					PreWeightFiltration << <block_cubic, thread_cubic_residual >> > (dev_Rcov, dev_R, dev_G, dev_Pdomain,
 						dev_Xigamadomain, Distance, PInt, LP, LXigama, Pstart, Xigamastart, numB, gstart, gend);
 				}
 			}

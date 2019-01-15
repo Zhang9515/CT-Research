@@ -68,20 +68,20 @@ __global__ void ProjectionCone(const float *dev_Pic, float *dev_Projection, cons
 
 	//compute the first and last point in the ROI
 	// using DetectPoint_end set up projection equation
-	double tlow_s = source_s + (tlow - source_t) * (DetectPoint_send - source_s) / (DetectPoint_tend - source_t);
-	double tlow_z = source_z + (tlow - source_t) * (DetectPoint_zend - source_z) / (DetectPoint_tend - source_t);
-	double thigh_s = source_s + (thigh - source_t) * (DetectPoint_send - source_s) / (DetectPoint_tend - source_t);
-	double thigh_z = source_z + (thigh - source_t) * (DetectPoint_zend - source_z) / (DetectPoint_tend - source_t);
+	double tlow_s = source_s + (tlow - source_t) * (DetectPoint_send - source_s) / (DetectPoint_tend - source_t + EPS);
+	double tlow_z = source_z + (tlow - source_t) * (DetectPoint_zend - source_z) / (DetectPoint_tend - source_t + EPS);
+	double thigh_s = source_s + (thigh - source_t) * (DetectPoint_send - source_s) / (DetectPoint_tend - source_t + EPS);
+	double thigh_z = source_z + (thigh - source_t) * (DetectPoint_zend - source_z) / (DetectPoint_tend - source_t + EPS);
 
-	double slow_t = source_t + (slow - source_s) * (DetectPoint_tend - source_t) / (DetectPoint_send - source_s);
-	double slow_z = source_z + (slow - source_s) * (DetectPoint_zend - source_z) / (DetectPoint_send - source_s);
-	double shigh_t = source_t + (shigh - source_s) * (DetectPoint_tend - source_t) / (DetectPoint_send - source_s);
-	double shigh_z = source_z + (shigh - source_s) * (DetectPoint_zend - source_z) / (DetectPoint_send - source_s);
+	double slow_t = source_t + (slow - source_s) * (DetectPoint_tend - source_t) / (DetectPoint_send - source_s + EPS);
+	double slow_z = source_z + (slow - source_s) * (DetectPoint_zend - source_z) / (DetectPoint_send - source_s + EPS);
+	double shigh_t = source_t + (shigh - source_s) * (DetectPoint_tend - source_t) / (DetectPoint_send - source_s + EPS);
+	double shigh_z = source_z + (shigh - source_s) * (DetectPoint_zend - source_z) / (DetectPoint_send - source_s + EPS);
 
-	double zlow_t = source_t + (zlow - source_z) * (DetectPoint_tend - source_t) / (DetectPoint_zend - source_z);
-	double zlow_s = source_s + (zlow - source_z) * (DetectPoint_send - source_s) / (DetectPoint_zend - source_z);
-	double zhigh_t = source_t + (zhigh - source_z) * (DetectPoint_tend - source_t) / (DetectPoint_zend - source_z);
-	double zhigh_s = source_s + (zhigh - source_z) * (DetectPoint_send - source_s) / (DetectPoint_zend - source_z);
+	double zlow_t = source_t + (zlow - source_z) * (DetectPoint_tend - source_t) / (DetectPoint_zend - source_z + EPS);
+	double zlow_s = source_s + (zlow - source_z) * (DetectPoint_send - source_s) / (DetectPoint_zend - source_z + EPS);
+	double zhigh_t = source_t + (zhigh - source_z) * (DetectPoint_tend - source_t) / (DetectPoint_zend - source_z + EPS);
+	double zhigh_s = source_s + (zhigh - source_z) * (DetectPoint_send - source_s) / (DetectPoint_zend - source_z + EPS);
 
 	//double *Range = new double [6];   //  XYXY small-big(number)
 	double T1 = 0, S1 = 0, Z1 = 0, T2 = 0, S2 = 0, Z2 = 0;
@@ -234,8 +234,8 @@ __global__ void ProjectionCone(const float *dev_Pic, float *dev_Projection, cons
 		{
 			GridT = floor(TCross) + flag1to1or_1to0(t_signal);
 		}
-		GridT_s = (source_s + (GridT * dev_resolution[0] - source_t) * (DetectPoint_send - source_s) / (DetectPoint_tend - source_t)) / dev_resolution[1];
-		GridT_z = (source_z + (GridT * dev_resolution[0] - source_t) * (DetectPoint_zend - source_z) / (DetectPoint_tend - source_t)) / dev_resolution[2];
+		GridT_s = (source_s + (GridT * dev_resolution[0] - source_t) * (DetectPoint_send - source_s) / (DetectPoint_tend - source_t + EPS)) / dev_resolution[1];
+		GridT_z = (source_z + (GridT * dev_resolution[0] - source_t) * (DetectPoint_zend - source_z) / (DetectPoint_tend - source_t + EPS)) / dev_resolution[2];
 
 		if (SCross - (double)((int)SCross) < EPS)
 		{
@@ -245,8 +245,8 @@ __global__ void ProjectionCone(const float *dev_Pic, float *dev_Projection, cons
 		{
 			GridS = floor(SCross) + flag1to1or_1to0(s_signal);
 		}
-		GridS_t = (source_t + (GridS * dev_resolution[1] - source_s) * (DetectPoint_tend - source_t) / (DetectPoint_send - source_s)) / dev_resolution[0];
-		GridS_z = (source_z + (GridS * dev_resolution[1] - source_s) * (DetectPoint_zend - source_z) / (DetectPoint_send - source_s)) / dev_resolution[2];
+		GridS_t = (source_t + (GridS * dev_resolution[1] - source_s) * (DetectPoint_tend - source_t) / (DetectPoint_send - source_s + EPS)) / dev_resolution[0];
+		GridS_z = (source_z + (GridS * dev_resolution[1] - source_s) * (DetectPoint_zend - source_z) / (DetectPoint_send - source_s + EPS)) / dev_resolution[2];
 
 		if (ZCross - (double)((int)ZCross) < EPS)
 		{
@@ -256,8 +256,8 @@ __global__ void ProjectionCone(const float *dev_Pic, float *dev_Projection, cons
 		{
 			GridZ = floor(ZCross) + flag1to1or_1to0(z_signal);
 		}
-		GridZ_t = (source_t + (GridZ * dev_resolution[2] - source_z) * (DetectPoint_tend - source_t) / (DetectPoint_zend - source_z)) / dev_resolution[0];
-		GridZ_s = (source_s + (GridZ * dev_resolution[2] - source_z) * (DetectPoint_send - source_s) / (DetectPoint_zend - source_z)) / dev_resolution[1];
+		GridZ_t = (source_t + (GridZ * dev_resolution[2] - source_z) * (DetectPoint_tend - source_t) / (DetectPoint_zend - source_z + EPS)) / dev_resolution[0];
+		GridZ_s = (source_s + (GridZ * dev_resolution[2] - source_z) * (DetectPoint_send - source_s) / (DetectPoint_zend - source_z + EPS)) / dev_resolution[1];
 
 		//judge which crosspoint is the nearest, means the smallest distance
 		if (Distancesq(GridT, GridT_s, GridT_z, TCross, SCross, ZCross) <= Distancesq(GridS_t, GridS, GridS_z, TCross, SCross, ZCross))
