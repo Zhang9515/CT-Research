@@ -21,7 +21,8 @@
 %             \/  i
 tic 
 clear;
-Size = [ 512 * 0.7480 ; 512 * 0.7480 ; 211 * 1 ] ;     % actual range 60
+% Size = [ 512 * 0.7480 ; 512 * 0.7480 ; 211 * 1 ] ;     % actual range 60
+Size = [ 60 , 60 , 60 ] ;     % actual range 60
 % pic = phantom3d ( 'Modified Shepp-Logan' , 65 ) ;     % original picture  
 % pic = Diskphantom ( 512 ) ;
 load('E:\ZXZ\Data\ThoraxHD.mat')
@@ -43,20 +44,21 @@ Resolution = max ( Size ) / t_length ;
 % Rpic = max ( Size ) * sqrt ( 3 ) / 2 ;                                         % radius of project (51.9615 for size 60)
 % Rpic = 500 ;
 
-Distance = 500 ;              % distance between source and center point
+Distance = 207.6 ;              % distance between source and center point
 
-PInt = 0.7 ;                                    %interval of P ( 0.1 exact )
+PInt = 0.9 ;                                    %interval of P ( 0.1 exact )
 % PInt = 0.2 ;
 % MaxP = Rplane * 1.1 ;
-MaxP = ( t_length / 2 * Distance ) / ( Distance - t_length / 2 ) ;
+MaxP = max ( ( Size(1) / 2 * Distance ) / ( Distance - Size(1) / 2 ) , Size(1) * sqrt( 2 ) / 2 * 1.1 ) ;
 Pdomain = - MaxP : PInt : MaxP ;                       % detective range P
 Pdomain = single(Pdomain');
 LP = length ( Pdomain ) ;
 
-XigamaInt = 1 ;                                      % interval of Xigama ( 0.1 exact )
+XigamaInt = 0.9 ;                                      % interval of Xigama ( 0.1 exact )
 % XigamaInt = 0.2; 
 % MaxXigama = Rplane * 1.1 ;
-MaxXigama = ( z_length / 2 * Distance ) / ( Distance - t_length * sqrt(2) / 2 ) ;       % computed by rule of similar triangle
+MaxXigama = max ( ( Size(3) / 2 * Distance ) / ( Distance - Size(1) * sqrt(2) / 2 ) , Size(1) * sqrt( 2 ) / 2 * 1.1 ) ;        
+% computed by rule of similar triangle
 Xigamadomain = - MaxXigama : XigamaInt : MaxXigama ;                       % detective range Xigama
 Xigamadomain = single(Xigamadomain');
 LXigama = length ( Xigamadomain ) ;
@@ -66,7 +68,6 @@ Center_t = max ( Size ) / 2 ;  Center_s = max ( Size ) / 2 ;   Center_z = max ( 
 % DisRatio = 4 ; 
 % Distance = 207.6; % Rpic * DisRatio ;        Distance = 500 ;              % distance between source and center point
 % Distance = 730 ; 
-
 
 % FanAmax = atan ( MaxP / ( Distance - Rplane ) ) ; 
 BetaScanInt = deg2rad(1) ;             % scanning internal    ( 0.3 exact )           

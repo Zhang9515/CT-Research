@@ -19,6 +19,7 @@ using namespace std;
 #define MID(x,y) ((x+y)/2)
 #define threadX 512
 #define blockX 512
+#define Filterlengthlimit 900
 
 cudaError_t ProjectionCone_3D(const float *Pic, float *Projection, const float *BetaScanRange, const float *Pdomain,
 	const float *Xigamadomain, const int t_length, const int s_length, const int z_length, const double Center_t,

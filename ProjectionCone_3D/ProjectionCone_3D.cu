@@ -359,7 +359,8 @@ cudaError_t ProjectionCone_3D(const float *Pic, float *Projection, const float *
 	dim3 thread_cubic_residual(1, 1, 1);  // initial
 	dim3 block_cubic_residual(1, 1, 1);  // initial
 
-	mexPrintf("%d %d %d %d\n", threadcubic_x, blockcubic_x, LPResidual, LXigamaResidual);
+	mexPrintf("threadcubic_x: %d blockcubic_x: %d LPResidual: %d LXigamaResidual: %d\n",
+		threadcubic_x, blockcubic_x, LPResidual, LXigamaResidual);
 
 	if (LPResidual != 0)
 	{
