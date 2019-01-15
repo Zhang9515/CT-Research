@@ -1,4 +1,4 @@
-function  imshow3Dfull( Img, disprange )
+function  imshow3Dfull( Img, disprange, Way )
 %IMSHOW3DFULL displays 3D grayscale images from three perpendicular views
 %(i.e. axial, sagittal, and coronal) in slice by slice fashion with mouse
 %based slice browsing and window and level adjustment control.
@@ -52,6 +52,9 @@ function  imshow3Dfull( Img, disprange )
 % - Revision: 2.0.0   Date: 2014/08/05
 % 
 
+defaults = {'fake color','grey'} ;
+idx = find(strncmp(defaults,Way,4));
+      
 sno = size(Img);  % image size
 sno_a = sno(3);  % number of axial slices
 S_a = round(sno_a/2);
@@ -142,7 +145,7 @@ WVFntSz = 9;
 BtnSz = 10;
 ChBxSz = 10;
 
-if (nargin < 2)
+if (nargin < 3)
     [Rmin Rmax] = WL2R(Win, LevV);
 elseif numel(disprange) == 0
     [Rmin Rmax] = WL2R(Win, LevV);
@@ -154,8 +157,12 @@ else
 end
 
 hdl_im = axes('position',[0,0.2,1,0.8]);
-imshow(Img(:,:,S), [Rmin Rmax])
-
+% imshow(Img(:,:,S), [Rmin Rmax])
+if (idx==1)
+    imagesc(Img(:,:,S), [Rmin Rmax]) ;
+elseif (idx==2)
+    imshow(Img(:,:,S), [Rmin Rmax]) ; 
+end
 FigPos = get(gcf,'Position');
 S_Pos = [50 70 uint16(FigPos(3)-100)+1 20];
 Stxt_Pos = [50 90 uint16(FigPos(3)-100)+1 15];
@@ -333,7 +340,12 @@ set(gcf,'ResizeFcn', @figureResized)
         sno = sno_a;
         cla(hdl_im);
         hdl_im = axes('position',[0,0.2,1,0.8]);
-        imshow(Img(:,:,S), [Rmin Rmax])
+%         imshow(Img(:,:,S), [Rmin Rmax])
+        if (idx==1)
+            imagesc(Img(:,:,S), [Rmin Rmax]) ;
+        elseif (idx==2)
+            imshow(Img(:,:,S), [Rmin Rmax]) ; 
+        end
 
         if sno > 1
             shand = uicontrol('Style', 'slider','Min',1,'Max',sno,'Value',S,'SliderStep',[1/(sno-1) 10/(sno-1)],'Position', S_Pos,'Callback', {@SliceSlider, Img});
@@ -368,8 +380,13 @@ set(gcf,'ResizeFcn', @figureResized)
         sno = sno_s;
         cla(hdl_im);
         hdl_im = axes('position',[0,0.2,1,0.8]);
-        imshow(Img(:,:,S), [Rmin Rmax])
-
+%         imshow(Img(:,:,S), [Rmin Rmax])
+        if (idx==1)
+            imagesc(Img(:,:,S), [Rmin Rmax]) ;
+        elseif (idx==2)
+            imshow(Img(:,:,S), [Rmin Rmax]) ; 
+        end
+        
         if sno > 1
             shand = uicontrol('Style', 'slider','Min',1,'Max',sno,'Value',S,'SliderStep',[1/(sno-1) 10/(sno-1)],'Position', S_Pos,'Callback', {@SliceSlider, Img});
             stxthand = uicontrol('Style', 'text','Position', Stxt_Pos,'String',sprintf('Slice# %d / %d',S, sno), 'BackgroundColor', [0.8 0.8 0.8], 'FontSize', SFntSz);
@@ -404,7 +421,12 @@ set(gcf,'ResizeFcn', @figureResized)
         sno = sno_c;
         cla(hdl_im);
         hdl_im = axes('position',[0,0.2,1,0.8]);
-        imshow(Img(:,:,S), [Rmin Rmax])
+%         imshow(Img(:,:,S), [Rmin Rmax])
+        if (idx==1)
+            imagesc(Img(:,:,S), [Rmin Rmax]) ;
+        elseif (idx==2)
+            imshow(Img(:,:,S), [Rmin Rmax]) ; 
+        end
 
         if sno > 1
             shand = uicontrol('Style', 'slider','Min',1,'Max',sno,'Value',S,'SliderStep',[1/(sno-1) 10/(sno-1)],'Position', S_Pos,'Callback', {@SliceSlider, Img});

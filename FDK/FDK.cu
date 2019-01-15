@@ -18,9 +18,43 @@ __global__ void GFunction(float *dev_G, const float PInt, const int LP)
 	}
 }
 
+//__global__ void PreWeightFiltration(float *dev_Rcov, float *dev_R, const float *dev_G, const float *dev_Pdomain,
+//	const float *dev_Xigamadomain, const double Distance, const float PInt, const int LP, const int LXigama, const int Pstart,
+//	const int Xigamastart, const int Betaindex)
+//{
+//
+//	//const unsigned int Gamaindex = blockIdx.x * blockDim.x + threadIdx.x;
+//	//const unsigned int Xigamaindex = blockIdx.y * blockDim.y + threadIdx.y;
+//	//const unsigned int Betaindex = blockIdx.z * blockDim.z + threadIdx.z;
+//	//const unsigned long thread_id = Betaindex * ( gridDim.x * gridDim.y * blockDim.x * blockDim.y ) 
+//	//	+ Xigamaindex * ( gridDim.x * blockDim.x ) + Gamaindex ;
+//
+//	const unsigned int Pindex = threadIdx.x + Pstart;
+//	const unsigned int Xigamaindex = blockIdx.x + Xigamastart;
+//	const unsigned long thread_id = Betaindex * (LXigama * LP) + Xigamaindex * LP + Pindex;
+//
+//	float P = dev_Pdomain[Pindex];
+//	float Xigama = dev_Xigamadomain[Xigamaindex];
+//
+//	double Proportion = Distance / sqrt(pow2(Distance) + pow2(P) + pow2(Xigama));
+//
+//	dev_R[thread_id] = dev_R[thread_id] * Proportion;    // directly cover the input
+//
+//	__syncthreads();
+//	double Rcovsum = 0;
+//	// convolution
+//	for (int g = 0; g < LP; g++)
+//	{
+//		//convolution
+//		Rcovsum += dev_R[Betaindex * (LXigama * LP) + Xigamaindex * LP + g] * dev_G[(LP - 1) + Pindex - g];
+//	}
+//	//__syncthreads();
+//	dev_Rcov[thread_id] = PInt * Rcovsum;
+//}
+
 __global__ void PreWeightFiltration(float *dev_Rcov, float *dev_R, const float *dev_G, const float *dev_Pdomain,
 	const float *dev_Xigamadomain, const double Distance, const float PInt, const int LP, const int LXigama, const int Pstart,
-	const int Xigamastart, const int Betaindex)
+	const int Xigamastart, const int Betaindex, const int gstart, const int gend)
 {
 
 	//const unsigned int Gamaindex = blockIdx.x * blockDim.x + threadIdx.x;
@@ -40,16 +74,18 @@ __global__ void PreWeightFiltration(float *dev_Rcov, float *dev_R, const float *
 
 	dev_R[thread_id] = dev_R[thread_id] * Proportion;    // directly cover the input
 
-	__syncthreads();
+	//__syncthreads();
 	double Rcovsum = 0;
 	// convolution
-	for (int g = 0; g < LP; g++)
+
+	for (int g = gstart; g < gend; g++)
 	{
 		//convolution
 		Rcovsum += dev_R[Betaindex * (LXigama * LP) + Xigamaindex * LP + g] * dev_G[(LP - 1) + Pindex - g];
 	}
 	//__syncthreads();
-	dev_Rcov[thread_id] = PInt * Rcovsum;
+
+	dev_Rcov[thread_id] += PInt * Rcovsum;
 }
 
 __global__ void BackProjection(const float *dev_Rcov, float *dev_Display, const double *dev_Size,
@@ -159,6 +195,9 @@ cudaError_t FDKpro(float *Display, const float *R, const float *Xigamadomain, co
 	int XigamaTime = LXigama / blockX;
 	int Pstart = 0;
 	int Xigamastart = 0;
+	int gstart = 0, gend = 0;
+	int gtime = 1;
+
 	float Beta = 0;
 
 	if (LPResidual != 0)
@@ -170,11 +209,15 @@ cudaError_t FDKpro(float *Display, const float *R, const float *Xigamadomain, co
 		block_cubic_residual.x = LXigamaResidual;
 	}
 
+	mexPrintf("thread_cubic_x: %d block_cubic_x: %d LPResidual: %d LXigamaResidual: %d\n", 
+		thread_cubic_x, block_cubic_x, LPResidual, LXigamaResidual);
+
 	const dim3 thread_cubic_Bp(t_length, 1, 1);
 	const dim3 block_cubic_Bp(s_length, z_length, 1);
 
 	cudaError_t cudaStatus;
 
+	///////////////////////////////////////////////////////////////////////////////////////////////	
 	mexPrintf("start cuda\n");
 
 	// Choose which GPU to run on, change this on a multi-GPU system.
@@ -184,6 +227,19 @@ cudaError_t FDKpro(float *Display, const float *R, const float *Xigamadomain, co
 		mexPrintf("cudaSetDevice failed!  Do you have a CUDA-capable GPU installed? %s\n", cudaGetErrorString(cudaStatus));
 		goto Error;
 	}
+	
+	// generate filter
+	mexPrintf("Filter\n");
+	cudaStatus = cudaMalloc((void**)&dev_G, LFilter * sizeof(float));
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "dev_G cudaMalloc failed!\n");
+		mexPrintf("dev_G cudaMalloc failed! %s\n", cudaGetErrorString(cudaStatus));
+		goto Error1;
+	}
+	cudaMemset(dev_G, 0, sizeof(float));
+
+	// Generate Filter
+	GFunction << <1, LP >> > (dev_G, PInt, LP);
 
 	mexPrintf("call for space in GPU\n");
 
@@ -203,18 +259,18 @@ cudaError_t FDKpro(float *Display, const float *R, const float *Xigamadomain, co
 		goto Error;
 	}
 
+	cudaStatus = cudaMalloc((void**)&dev_Xigamadomain, LXigama * sizeof(float));
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "dev_Xigamadomain cudaMalloc failed!\n");
+		mexPrintf("dev_Xigamadomain cudaMalloc failed! %s\n", cudaGetErrorString(cudaStatus));
+		goto Error;
+	}
+
 	cudaStatus = cudaMalloc((void**)&dev_BetaScanRange, LBeta * sizeof(float));
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "dev_BetaScanRange cudaMalloc failed!\n");
 		mexPrintf("dev_BetaScanRange cudaMalloc failed! %s\n", cudaGetErrorString(cudaStatus));
 		goto Error;
-	}
-
-	cudaStatus = cudaMalloc((void**)&dev_G, LFilter * sizeof(float));
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "dev_G cudaMalloc failed!\n");
-		mexPrintf("dev_G cudaMalloc failed! %s\n", cudaGetErrorString(cudaStatus));
-		goto Error1;
 	}
 
 	cudaStatus = cudaMalloc((void**)&dev_Rcov, LR * sizeof(float));
@@ -223,13 +279,7 @@ cudaError_t FDKpro(float *Display, const float *R, const float *Xigamadomain, co
 		mexPrintf("dev_BetaScanRange cudaMalloc failed! %s\n", cudaGetErrorString(cudaStatus));
 		goto Error;
 	}
-
-	cudaStatus = cudaMalloc((void**)&dev_Xigamadomain, LXigama * sizeof(float));
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "dev_Xigamadomain cudaMalloc failed!\n");
-		mexPrintf("dev_Xigamadomain cudaMalloc failed! %s\n", cudaGetErrorString(cudaStatus));
-		goto Error;
-	}
+	cudaMemset(dev_Rcov, 0, sizeof(float));
 
 	//mexPrintf("copy data in CPU to GPU\n");
 
@@ -248,13 +298,6 @@ cudaError_t FDKpro(float *Display, const float *R, const float *Xigamadomain, co
 		goto Error;
 	}
 
-	cudaStatus = cudaMemcpy(dev_BetaScanRange, BetaScanRange, LBeta * sizeof(float), cudaMemcpyHostToDevice);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudaMemcpy BetaScanRange failed!\n");
-		mexPrintf("cudaMemcpy v failed! %s\n", cudaGetErrorString(cudaStatus));
-		goto Error;
-	}
-
 	cudaStatus = cudaMemcpy(dev_Xigamadomain, Xigamadomain, LXigama * sizeof(float), cudaMemcpyHostToDevice);
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaMemcpy Xigamadomain failed!\n");
@@ -262,10 +305,17 @@ cudaError_t FDKpro(float *Display, const float *R, const float *Xigamadomain, co
 		goto Error;
 	}
 
+	cudaStatus = cudaMemcpy(dev_BetaScanRange, BetaScanRange, LBeta * sizeof(float), cudaMemcpyHostToDevice);
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "cudaMemcpy BetaScanRange failed!\n");
+		mexPrintf("cudaMemcpy BetaScanRange failed! %s\n", cudaGetErrorString(cudaStatus));
+		goto Error;
+	}
+
 	mexPrintf("start parallel computation\n");
-	mexPrintf("Filter\n");
-	// Generate Filter
-	GFunction << <1, LP >> >(dev_G, PInt, LP);
+	
+	gtime = ceil(1.0 * LP / Filterlengthlimit); 
+	mexPrintf("gtime: %d\n", gtime);
 
 	mexPrintf("Preweight and filtration\n");
 	// Preweight and filtration
@@ -280,8 +330,23 @@ cudaError_t FDKpro(float *Display, const float *R, const float *Xigamadomain, co
 				Pstart = numP * threadX;
 				Xigamastart = numX * blockX;
 				//mexPrintf("%d %d\n", Pstart, Xigamastart);
-				PreWeightFiltration << <block_cubic, thread_cubic >> > (dev_Rcov, dev_R, dev_G, dev_Pdomain,
-					dev_Xigamadomain, Distance, PInt, LP, LXigama, Pstart, Xigamastart, numB);
+				for (int numg = 0; numg < gtime; numg++)
+				{
+					gstart = int(numg * Filterlengthlimit);
+					if (numg != (gtime - 1))
+					{
+						gend = int((numg + 1)* Filterlengthlimit);
+					}
+					else
+					{
+						gend = LP;
+					}
+					/*mexPrintf("gstart: %d\n", gstart);
+					mexPrintf("gend: %d\n", gend);*/
+					PreWeightFiltration << <block_cubic, thread_cubic >> > (dev_Rcov, dev_R, dev_G, dev_Pdomain,
+						dev_Xigamadomain, Distance, PInt, LP, LXigama, Pstart, Xigamastart, numB, gstart, gend);
+				}
+
 			}
 		}
 
@@ -292,16 +357,44 @@ cudaError_t FDKpro(float *Display, const float *R, const float *Xigamadomain, co
 			{
 				Xigamastart = LXigama - LXigamaResidual;
 				//("%d %d\n", Pstart, Xigamastart);
-				PreWeightFiltration << <block_cubic_residual, thread_cubic_residual >> > (dev_Rcov, dev_R, dev_G, dev_Pdomain,
-					dev_Xigamadomain, Distance, PInt, LP, LXigama, Pstart, Xigamastart, numB);
+				for (int numg = 0; numg < gtime; numg++)
+				{
+					gstart = int(numg * Filterlengthlimit);
+					if (numg != (gtime - 1))
+					{
+						gend = int((numg + 1)* Filterlengthlimit);
+					}
+					else
+					{
+						gend = LP;
+					}
+					/*mexPrintf("gstart: %d\n", gstart);
+					mexPrintf("gend: %d\n", gend);*/
+					PreWeightFiltration << <block_cubic_residual, thread_cubic_residual >> > (dev_Rcov, dev_R, dev_G, dev_Pdomain,
+						dev_Xigamadomain, Distance, PInt, LP, LXigama, Pstart, Xigamastart, numB, gstart, gend);
+				}
 			}
 
 			for (int numX = 0; numX < XigamaTime; numX++)
 			{
 				Xigamastart = numX * blockX;
 				//("%d %d\n", Pstart, Xigamastart);
-				PreWeightFiltration << <block_cubic, thread_cubic_residual >> > (dev_Rcov, dev_R, dev_G, dev_Pdomain,
-					dev_Xigamadomain, Distance, PInt, LP, LXigama, Pstart, Xigamastart, numB);
+				for (int numg = 0; numg < gtime; numg++)
+				{
+					gstart = int(numg * Filterlengthlimit);
+					if (numg != (gtime - 1))
+					{
+						gend = int((numg + 1)* Filterlengthlimit);
+					}
+					else
+					{
+						gend = LP;
+					}
+					/*mexPrintf("gstart: %d\n", gstart);
+					mexPrintf("gend: %d\n", gend);*/
+					PreWeightFiltration << <block_cubic, thread_cubic_residual >> > (dev_Rcov, dev_R, dev_G, dev_Pdomain,
+						dev_Xigamadomain, Distance, PInt, LP, LXigama, Pstart, Xigamastart, numB, gstart, gend);
+				}
 			}
 		}
 		if (LXigamaResidual != 0)
@@ -311,8 +404,22 @@ cudaError_t FDKpro(float *Display, const float *R, const float *Xigamadomain, co
 			{
 				Pstart = numP * threadX;
 				//mexPrintf("%d %d\n", Pstart, Xigamastart);
-				PreWeightFiltration << <block_cubic_residual, thread_cubic >> > (dev_Rcov, dev_R, dev_G, dev_Pdomain,
-					dev_Xigamadomain, Distance, PInt, LP, LXigama, Pstart, Xigamastart, numB);
+				for (int numg = 0; numg < gtime; numg++)
+				{
+					gstart = int(numg * Filterlengthlimit);
+					if (numg != (gtime - 1))
+					{
+						gend = int((numg + 1)* Filterlengthlimit);
+					}
+					else
+					{
+						gend = LP;
+					}
+					/*mexPrintf("gstart: %d\n", gstart);
+					mexPrintf("gend: %d\n", gend);*/
+					PreWeightFiltration << <block_cubic_residual, thread_cubic >> > (dev_Rcov, dev_R, dev_G, dev_Pdomain,
+						dev_Xigamadomain, Distance, PInt, LP, LXigama, Pstart, Xigamastart, numB, gstart, gend);
+				}
 			}
 		}
 	}

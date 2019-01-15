@@ -19,6 +19,7 @@ using namespace std;
 
 #define threadX 512
 #define blockX 512
+#define Filterlengthlimit 500
 
 #define MIN(x,y) x<y?x:y
 #define MAX(x,y) x>y?x:y

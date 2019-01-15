@@ -21,46 +21,55 @@
 %             \/  i
 tic 
 clear;
-Size = [ 60 ; 60 ; 60 ] ;     % actual range 60
+% Size = [ 512 * 0.7480 ; 512 * 0.7480 ; 211 * 1 ] ;     % actual range 60
+Size = [ 60 , 60 , 60 ] ;     % actual range 60
 % pic = phantom3d ( 'Modified Shepp-Logan' , 65 ) ;     % original picture  
-pic = Diskphantom ( 129 ) ;
+% pic = Diskphantom ( 512 ) ;
+load('E:\ZXZ\Data\ThoraxHD.mat')
+pic = single( ThoraxHD ) ;
 % load ( ' D:\TestCpp\CT\Data\FDK\SFBPimage3.mat ' ) ;       % head ct data
 % pic = double ( SFBPimage ) ;
 % load ( ' D:\TestCpp\CT\Data\FDK\Chest256_160.mat ' ) ;       % chest ct data
 % pic = double ( Chest ) ;
 % load ('G:\CTcode\Code\ProjectionCone_3D\phantom512.mat')
-pic = single(pic);
+% pic = single(pic);
 
 % PicSize = 512 ;
 [ t_length , s_length , z_length ] = size ( pic ) ;              % store the size of picture
+
+%  t_length = 512 ; s_length = 512 ; z_length = 200 ;
+ 
 % t_length = PicSize ; s_length = PicSize ; z_length = PicSize ;              % store the size of picture
 Resolution = max ( Size ) / t_length ;                           
-Rpic = max ( Size ) * sqrt ( 3 ) / 2 ;                                         % radius of project (51.9615 for size 60)
-Rplane = max ( Size ) * sqrt ( 2 ) / 2 ;                    %  circumscribed circle radius of project in the plane
+% Rpic = max ( Size ) * sqrt ( 3 ) / 2 ;                                         % radius of project (51.9615 for size 60)
+% Rplane = max ( Size ) * sqrt ( 2 ) / 2 ;                    %  circumscribed circle radius of project in the plane
 
-% Projection = zeros ( PicSize , PicSize , PicSize ) ;      %reconstruct the pic
-Resolution2 = max ( Size ) / size ( pic,1 ) ; 
+% Rpic = max ( Size ) * sqrt ( 3 ) / 2 ;                                         % radius of project (51.9615 for size 60)
+% Rpic = 500 ;
 
-% PInt = 0.4 ;                                    %interval of P ( 0.1 exact )
-PInt = 0.2;
-MaxP = Rplane * 1.1 ;
-% MaxP = PInt * 83 ;
+Distance = 207.6 ;              % distance between source and center point
+
+PInt = 0.9 ;                                    %interval of P ( 0.1 exact )
+% PInt = 0.2 ;
+% MaxP = Rplane * 1.1 ;
+MaxP = max ( ( Size(1) / 2 * Distance ) / ( Distance - Size(1) / 2 ) , Size(1) * sqrt( 2 ) / 2 * 1.1 ) ;
 Pdomain = - MaxP : PInt : MaxP ;                       % detective range P
 Pdomain = single(Pdomain');
 LP = length ( Pdomain ) ;
 
-% XigamaInt = 0.4 ;                                      % interval of Xigama ( 0.1 exact )
-XigamaInt = 0.2; 
-MaxXigama = Rplane * 1.1 ;
-% MaxXigama = XigamaInt * 83 ; 
+XigamaInt = 0.9 ;                                      % interval of Xigama ( 0.1 exact )
+% XigamaInt = 0.2; 
+% MaxXigama = Rplane * 1.1 ;
+MaxXigama = max ( ( Size(3) / 2 * Distance ) / ( Distance - Size(1) * sqrt(2) / 2 ) , Size(1) * sqrt( 2 ) / 2 * 1.1 ) ;        
+% computed by rule of similar triangle
 Xigamadomain = - MaxXigama : XigamaInt : MaxXigama ;                       % detective range Xigama
 Xigamadomain = single(Xigamadomain');
 LXigama = length ( Xigamadomain ) ;
 
 Center_t = max ( Size ) / 2 ;  Center_s = max ( Size ) / 2 ;   Center_z = max ( Size ) / 2 ;          % define the center 
 
-DisRatio = 4 ; 
-Distance = 207.6; % Rpic * DisRatio ;                     % distance between source and center point
+% DisRatio = 4 ; 
+% Distance = 207.6; % Rpic * DisRatio ;        Distance = 500 ;              % distance between source and center point
 % Distance = 730 ; 
 
 % FanAmax = atan ( MaxP / ( Distance - Rplane ) ) ; 
@@ -78,8 +87,17 @@ R = zeros ( LP * LXigama * LBeta, 1 ) ;   % create space to store fan projection
 picvector = reshape (pic, t_length * s_length * z_length, 1);
 clear pic;
 R = ProjectionCone_3D (picvector, t_length, s_length, z_length, Size, BetaScanRange, Pdomain, Xigamadomain, Distance);
-R = reshape ( R , LP , LXigama, LBeta ) ;
+% R = reshape ( R , LP , LXigama, LBeta ) ;
 % figure,imshow3Dfull(R,[])
+
+% load('E:\ZXZ\Data\matlab.mat')
+% RR = zeros( 870 , 256 , 360 ) ;
+% for i = 1 :360
+%     RR( : ,:,i) = Proj_matrix(:,:,i)';
+% end
+% R = reshape(RR,LP * LXigama * LBeta, 1) ;
+
+
 % clear picvector;
 %% direct fan : equal spaced
 % 257.438 s  phantom(64) , maxP= 0.75 , pint = 1 
@@ -296,11 +314,11 @@ R = reshape ( R , LP , LXigama, LBeta ) ;
 % % figure , imshow ( squeeze ( R ( : , 331  , : ) ) , [] ) ; 
 %% GPU accelerate the preweight & filteration & backprojection
 % load R1
-z_length = 129;
+z_length = 211;
 R= single(R) ;
 Display = FDK ( R , Xigamadomain , Pdomain , BetaScanRange , Distance, Size, t_length, s_length, z_length) ;
 Display = reshape ( Display , t_length , s_length , z_length ) ;
-figure,imshow3Dfull(Display, [0 1])
+figure,imshow3Dfull(Display, [0 0.5])
  %% filter    S-L
 % load D:\TestCpp\CT\Data\FDK\RFBPimage3\RCT52.mat ;
 % load G:\CTcode\Code\ABC.mat
