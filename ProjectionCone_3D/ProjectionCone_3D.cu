@@ -384,9 +384,6 @@ cudaError_t ProjectionCone_3D(const float *Pic, float *Projection, const float *
 			}
 		}
 	}
-	
-
-
 
 	// Choose which GPU to run on, change this on a multi-GPU system.
 	cudaStatus = cudaSetDevice(0);

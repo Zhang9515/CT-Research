@@ -22,10 +22,9 @@
 tic 
 clear;
 
-load('E:\ZXZ\Data\ThoraxHD.mat')
-pic = zeros( 512 , 512 , 512 ) ;
-% pic ( : , : , 150 : 360 ) = ThoraxHD( 1 : 256 , 1 : 256 , : ) ;
-pic ( : , : , 129 : 384 ) = ThoraxHD ;
+% load('E:\ZXZ\Data\ThoraxHD.mat')
+load('G:\CTcode\Data\ThoraxHD_661.mat')
+pic = ThoraxHD_661 ;
 pic = single ( pic ) ;
 clear ThoraxHD
 % pic = single( Diskphantom ( 512 ) ) ;
@@ -36,20 +35,23 @@ clear ThoraxHD
 % Size = [ t_length * 0.7480 ; s_length * 0.7480 ; z_length * 1 ] ;     % actual range ( should refer to dicom info)
 Size = [ 60 , 60 , 60 ] ;
 
+z_lengthrec = 256 ;    % reconstruction matrix size
+Sizerec = [ 60 , 60 , 60 * z_lengthrec / 512 ] ;     % reconstruction real size
+
 Rplane = Size(1) * sqrt ( 2 ) / 2 ;                    %  circumscribed circle radius of project in the plane
 
 Resolution = [ Size(1) / t_length , Size(2) / s_length , Size(3) / z_length ];                           
 
 Distance = 207.6 ;              % distance between source and center point ( 207.6 for 60 )
 
-PInt = 0.08 ;                                    %interval of P ( 0.1 exact )
+PInt = 0.1 ;                                    %interval of P ( 0.1 exact )
 MaxP = max ( ( Size(1) / 2 * Distance ) / ( Distance - Size(1) / 2 ) , Rplane * 1.1 );
 Pdomain = - MaxP : PInt : MaxP ;                       % detective range P
 Pdomain = single(Pdomain');
 LP = length ( Pdomain ) ;
 
 XigamaInt = 0.1 ;                                      % interval of Xigama ( 0.1 exact )
-MaxXigama = ( Size(3) / 2 * Distance ) / ( Distance - Size(1) * sqrt(2) / 2 ) ;       % computed by rule of similar triangle
+MaxXigama = ( Sizerec(3) / 2 * Distance ) / ( Distance - Size(1) * sqrt(2) / 2 ) ;       % computed by rule of similar triangle
 MaxXigama = 46.669 ; 
 Xigamadomain = - MaxXigama : XigamaInt : MaxXigama ;                       % detective range Xigama
 Xigamadomain = single(Xigamadomain');
@@ -71,11 +73,9 @@ LBeta = length ( BetaScanRange ) ;
 
 picvector = reshape (pic, t_length * s_length * z_length, 1);
 % clear pic;
-z_lengthrec = 256 ;    % reconstruction matrix size
-Sizerec = [ 60 , 60 , 60 * z_lengthrec / 512 ] ;     % reconstruction real size
 
 Display = zeros ( t_length * s_length * z_lengthrec, 1 ) ; 
-LBetaPrime = floor ( ( 400 * 400 * 90 ) / ( LP * LXigama ) ) ;     % 400 * 400 * 90 is related to the quality of GPU
+LBetaPrime = floor ( ( 100 * 100 * 90 ) / ( LP * LXigama ) ) ;     % 400 * 400 * 90 is related to the quality of GPU
 times = ceil ( LBeta / LBetaPrime ) ;
 disp(['times: ',num2str(times)]);
 

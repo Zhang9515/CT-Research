@@ -21,7 +21,7 @@ zzprime = vertical_resolution + vertical_resolution/augmentRate * ( 0 : (current
 [ XXprime , YYprime , ZZprime ] = meshgrid ( xx , yy , zzprime ) ;
 
 current_img = interp3( XX , YY , ZZ , origin_img , XXprime , YYprime , ZZprime , '*cubic' ) ; 
-figure,imshow3Dfull( current_img , [0 1] ) 
+figure,imshow3Dfull( current_img , [0 1],'grey' ) 
 
 
 

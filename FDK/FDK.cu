@@ -19,116 +19,133 @@ __global__ void GFunction(float *dev_G, const float PInt, const int Pstart, cons
 }
 
 
-__global__ void PreWeight(float *dev_R, const float *dev_Pdomain, const float *dev_Xigamadomain, 
-	const double Distance, const int LP, const int LXigama, const int Pstart, const int Xigamastart, 
-	const int Betaindex)
+//__global__ void PreWeight(float *dev_R, const float *dev_Pdomain, const float *dev_Xigamadomain,
+//	const double Distance, const int LP, const int LXigama, const int Pstart, const int Xigamastart,
+//	const int Betaindex)
+//{
+//
+//	//const unsigned int Gamaindex = blockIdx.x * blockDim.x + threadIdx.x;
+//	//const unsigned int Xigamaindex = blockIdx.y * blockDim.y + threadIdx.y;
+//	//const unsigned int Betaindex = blockIdx.z * blockDim.z + threadIdx.z;
+//	//const unsigned long thread_id = Betaindex * ( gridDim.x * gridDim.y * blockDim.x * blockDim.y ) 
+//	//	+ Xigamaindex * ( gridDim.x * blockDim.x ) + Gamaindex ;
+//
+//	const unsigned int Pindex = threadIdx.x + Pstart;
+//	const unsigned int Xigamaindex = blockIdx.x + Xigamastart;
+//	const unsigned long thread_id = Betaindex * (LXigama * LP) + Xigamaindex * LP + Pindex;
+//
+//	float P = dev_Pdomain[Pindex];
+//	float Xigama = dev_Xigamadomain[Xigamaindex];
+//
+//	double Proportion = Distance / sqrt(pow2(Distance) + pow2(P) + pow2(Xigama));
+//
+//	dev_R[thread_id] = dev_R[thread_id] * Proportion;    // directly cover the input
+//
+//}
+
+__global__ void PreWeightFilter(float *dev_Rcov, float *dev_R, const float *dev_Pdomain, const float *dev_Xigamadomain,
+	const double Distance, const float *dev_G, const float PInt, const int LP,
+	const int LXigama, const int Pstart, const int Xigamastart, const int Betaindex, const int gstart,
+	const int gend)
 {
-
-	//const unsigned int Gamaindex = blockIdx.x * blockDim.x + threadIdx.x;
-	//const unsigned int Xigamaindex = blockIdx.y * blockDim.y + threadIdx.y;
-	//const unsigned int Betaindex = blockIdx.z * blockDim.z + threadIdx.z;
-	//const unsigned long thread_id = Betaindex * ( gridDim.x * gridDim.y * blockDim.x * blockDim.y ) 
-	//	+ Xigamaindex * ( gridDim.x * blockDim.x ) + Gamaindex ;
-
 	const unsigned int Pindex = threadIdx.x + Pstart;
 	const unsigned int Xigamaindex = blockIdx.x + Xigamastart;
-	const unsigned long thread_id = Betaindex * (LXigama * LP) + Xigamaindex * LP + Pindex;
+	const unsigned long base_id = Betaindex * (LXigama * LP) + Xigamaindex * LP;
+	const unsigned long thread_id = base_id + Pindex;
 
 	float P = dev_Pdomain[Pindex];
 	float Xigama = dev_Xigamadomain[Xigamaindex];
 
 	double Proportion = Distance / sqrt(pow2(Distance) + pow2(P) + pow2(Xigama));
-	 
+
 	dev_R[thread_id] = dev_R[thread_id] * Proportion;    // directly cover the input
-
-}
-
-__global__ void Filter(float *dev_Rcov, float *dev_R, const float *dev_G, const float PInt, const int LP, 
-	const int LXigama, const int Pstart, const int Xigamastart, const int Betaindex, const int gstart, 
-	const int gend)
-{
-	const unsigned int Pindex = threadIdx.x + Pstart;
-	const unsigned int Xigamaindex = blockIdx.x + Xigamastart;
-	const unsigned long base_id = Betaindex * (LXigama * LP) + Xigamaindex * LP; 
-	const unsigned long thread_id = base_id + Pindex;
 
 	double Rcovsum = 0;
 	// convolution
-		
+
 	for (int g = gstart; g < gend; g++)
 	{
 		//convolution
 		Rcovsum += dev_R[base_id + g] * dev_G[(LP - 1) + Pindex - g];
 	}
-	
-	dev_Rcov[thread_id] += PInt * Rcovsum;
 
+	dev_Rcov[thread_id] += PInt * Rcovsum;
 }
 
 __global__ void BackProjection(const float *dev_Rcov, float *dev_Display, const double *dev_Size,
-	const int t_length, const int s_length, const int z_length, const float Beta, const double Distance, 
-	const float *dev_Pdomain, const float *dev_Xigamadomain, const float PInt, const float XigamaInt, 
-	const float BetaScanInt, const float minP, const float maxP, const float minXigama, const float maxXigama, 
+	const int t_length, const int s_length, const int z_length, const float Beta,
+	const double Distance,
+	const float *dev_Pdomain, const float *dev_Xigamadomain, const float PInt, const float XigamaInt,
+	const float BetaScanInt, const float minP, const float maxP, const float minXigama, const float maxXigama,
 	const int betaIndex, const int LP, const int LXigama)
 {
-	const unsigned int Tindex = threadIdx.x;
-	const unsigned int Sindex = blockIdx.x;
-	const unsigned int Zindex = blockIdx.y;
-	const unsigned long thread_id = Zindex * (gridDim.x * blockDim.x)
-		+ Sindex * blockDim.x + Tindex;
 	// initialize
-
 	const double Resolution_t = 1.0 * dev_Size[0] / t_length;
 	const double Resolution_s = 1.0 * dev_Size[1] / s_length;
 	const double Resolution_z = 1.0 * dev_Size[2] / z_length;
-
 	// rotation center
 	double Center_t = dev_Size[0] / 2;
 	double Center_s = dev_Size[1] / 2;
 	double Center_z = dev_Size[2] / 2;
+	// index 
+	const unsigned int Tindex = threadIdx.x;
+	const unsigned int Sindex = blockIdx.x;
+	const unsigned int Zindex = blockIdx.y;
 
-	// this is a little different from code on MATLAB
-	double image_t = (Tindex + 0.5) * Resolution_t - Center_t;  float image_s = (Sindex + 0.5) * Resolution_s - Center_s; float image_z = (Zindex + 0.5) * Resolution_z - Center_z;           // image pixel in ground coordinate
-
-	// rotate in ground coordinate
-	double dect_t = image_t * cos(Beta) + image_s * sin(Beta);
-	double dect_s = -image_t * sin(Beta) + image_s * cos(Beta);
-	double dect_z = image_z;
-
-	// define the projection position on the detector
-	double LengthRatio = Distance / (Distance - dect_s);
-	double Xigama = dect_z * LengthRatio;
-	double P = dect_t * LengthRatio;
-
-	unsigned int XigamaN1index = 0, XigamaN2index = 0, PN1index = 0, PN2index = 0;
-	double P_domain1 = 0, P_domain2 = 0, Xigama_domain1 = 0, Xigama_domain2 = 0;
-	double Xig1 = 0, Xig2 = 0, P1 = 0, P2 = 0;
+	double image_t, image_s, image_z, dect_t, dect_s, dect_z;
+	unsigned int XigamaN1index, XigamaN2index, PN1index, PN2index;
+	double P_domain1, P_domain2, Xigama_domain1, Xigama_domain2;
+	double Xig1, Xig2, P1, P2;
 	double Display_pBeta = 0;
+	double LengthRatio;
+	double Xigama, P;
+	double Weight;
+	unsigned long thread_id;
 
-	if ((P >= minP) && (P < maxP) && (Xigama >= minXigama) && (Xigama < maxXigama))
+	for (int Zindex = 0; Zindex < z_length; Zindex++)
 	{
-		XigamaN1index = floor(fabs(Xigama - dev_Xigamadomain[0]) / XigamaInt);
-		XigamaN2index = XigamaN1index + 1;
-		PN1index = floor(fabs(P - dev_Pdomain[0]) / PInt);
-		PN2index = PN1index + 1;
+		// this is a little different from code on MATLAB
+		image_t = (Tindex + 0.5) * Resolution_t - Center_t;
+		image_s = (Sindex + 0.5) * Resolution_s - Center_s;
+		image_z = (Zindex + 0.5) * Resolution_z - Center_z;     // image pixel in ground coordinate
 
-		P_domain1 = dev_Pdomain[PN1index]; P_domain2 = dev_Pdomain[PN2index];
-		Xigama_domain1 = dev_Xigamadomain[XigamaN1index]; Xigama_domain2 = dev_Xigamadomain[XigamaN2index];
+																// rotate in ground coordinate
+		dect_t = image_t * cos(Beta) + image_s * sin(Beta);
+		dect_s = -image_t * sin(Beta) + image_s * cos(Beta);
+		dect_z = image_z;
 
-		//bilinear interpolation
-		Xig1 = fabs(Xigama - Xigama_domain1); Xig2 = fabs(Xigama_domain2 - Xigama);
-		P1 = fabs(P - P_domain1); P2 = fabs(P_domain2 - P);
+		// define the projection position on the detector
+		LengthRatio = Distance / (Distance - dect_s);
+		Xigama = dect_z * LengthRatio;
+		P = dect_t * LengthRatio;
 
-		double Weight = sqrt(1 + 0 * pow2(dect_z) / (pow2(Distance + dect_s) + pow2(dect_t)));
-		//Display_pBeta = 1;
-		Display_pBeta = (Xig2 * P2 * dev_Rcov[betaIndex * LP * LXigama + XigamaN1index * LP + PN1index]
-			+ Xig1 * P2 * dev_Rcov[betaIndex * LP * LXigama + XigamaN2index * LP + PN1index] 
-			+ Xig2 * P1 * dev_Rcov[betaIndex * LP * LXigama + XigamaN1index * LP + PN2index]
-			+ Xig1 * P1 * dev_Rcov[betaIndex * LP * LXigama + XigamaN2index * LP  + PN2index]) 
-			/ (PInt * XigamaInt) * pow2(LengthRatio) * BetaScanInt * Weight;
+		if ((P >= minP) && (P < maxP) && (Xigama >= minXigama) && (Xigama < maxXigama))
+		{
+			XigamaN1index = floor(fabs(Xigama - dev_Xigamadomain[0]) / XigamaInt);
+			XigamaN2index = XigamaN1index + 1;
+			PN1index = floor(fabs(P - dev_Pdomain[0]) / PInt);
+			PN2index = PN1index + 1;
+
+			P_domain1 = dev_Pdomain[PN1index]; P_domain2 = dev_Pdomain[PN2index];
+			Xigama_domain1 = dev_Xigamadomain[XigamaN1index]; Xigama_domain2 = dev_Xigamadomain[XigamaN2index];
+
+			//bilinear interpolation
+			Xig1 = fabs(Xigama - Xigama_domain1); Xig2 = fabs(Xigama_domain2 - Xigama);
+			P1 = fabs(P - P_domain1); P2 = fabs(P_domain2 - P);
+
+			Weight = sqrt(1 + 0 * pow2(dect_z) / (pow2(Distance + dect_s) + pow2(dect_t)));
+			//Display_pBeta = 1;
+			Display_pBeta = (Xig2 * P2 * dev_Rcov[betaIndex * LP * LXigama + XigamaN1index * LP + PN1index]
+				+ Xig1 * P2 * dev_Rcov[betaIndex * LP * LXigama + XigamaN2index * LP + PN1index]
+				+ Xig2 * P1 * dev_Rcov[betaIndex * LP * LXigama + XigamaN1index * LP + PN2index]
+				+ Xig1 * P1 * dev_Rcov[betaIndex * LP * LXigama + XigamaN2index * LP + PN2index])
+				/ (PInt * XigamaInt) * pow2(LengthRatio) * BetaScanInt * Weight;
+		}
+		thread_id = Zindex * (gridDim.x * blockDim.x)
+			+ Sindex * blockDim.x + Tindex;
+		dev_Display[thread_id] += Display_pBeta;
 	}
 
-	dev_Display[thread_id] += Display_pBeta;
 }
 
 // Helper function for using CUDA to add vectors in parallel.
@@ -176,8 +193,6 @@ cudaError_t FDKpro(float *Display, const float *R, const float *Xigamadomain, co
 	int gtime = 1;
 	mexPrintf("PTime: %d XigamaTime: %d\n", PTime, XigamaTime);
 
-	float Beta = 0;
-
 	if (LPResidual != 0)
 	{
 		thread_cubic_residual.x = LPResidual;
@@ -187,11 +202,11 @@ cudaError_t FDKpro(float *Display, const float *R, const float *Xigamadomain, co
 		block_cubic_residual.x = LXigamaResidual;
 	}
 
-	mexPrintf("thread_cubic_x: %d block_cubic_x: %d LPResidual: %d LXigamaResidual: %d\n", 
+	mexPrintf("thread_cubic_x: %d block_cubic_x: %d LPResidual: %d LXigamaResidual: %d\n",
 		thread_cubic_x, block_cubic_x, LPResidual, LXigamaResidual);
 
 	const dim3 thread_cubic_Bp(t_length, 1, 1);
-	const dim3 block_cubic_Bp(s_length, z_length, 1);
+	const dim3 block_cubic_Bp(s_length, 1, 1);
 
 	cudaError_t cudaStatus;
 
@@ -270,104 +285,10 @@ cudaError_t FDKpro(float *Display, const float *R, const float *Xigamadomain, co
 	}
 
 	mexPrintf("start parallel computation\n");
-	
-	mexPrintf("Preweight\n");
-	// Preweight
+
+	mexPrintf("Preweight and Filtering\n");
+	// Preweight and filter 
 	// to be adapted to GPU, we limited the number of threads in each grid (threadX * blockX * LBeta)
-	for (int numB = 0; numB < LBeta; numB++)
-	{
-		Beta = BetaScanRange[numB];
-		for (int numP = 0; numP < PTime; numP++)
-		{
-			for (int numX = 0; numX < XigamaTime; numX++)
-			{
-				Pstart = numP * threadX;
-				Xigamastart = numX * blockX;
-				//mexPrintf("%d %d\n", Pstart, Xigamastart);
-				PreWeight << <block_cubic, thread_cubic >> > (dev_R, dev_Pdomain,
-					dev_Xigamadomain, Distance, LP, LXigama, Pstart, Xigamastart, numB);
-				// Check for any errors launching the kernel
-				cudaStatus = cudaGetLastError();
-				if (cudaStatus != cudaSuccess) {
-					fprintf(stderr, "Preweight launch failed: %s\n", cudaGetErrorString(cudaStatus));
-					mexPrintf("Preweight launch failed %s\n", cudaGetErrorString(cudaStatus));
-					mexPrintf("Error happens at numB: %d Pstart: %d Xigamastart: %d\n", numB, Pstart,
-						Xigamastart);
-					goto Error;
-				}
-			}
-		}
-
-		if (LPResidual != 0)
-		{
-			Pstart = LP - LPResidual;
-			if (LXigamaResidual != 0)
-			{
-				Xigamastart = LXigama - LXigamaResidual;
-				//("%d %d\n", Pstart, Xigamastart);	
-				PreWeight << <block_cubic_residual, thread_cubic_residual >> > (dev_R, dev_Pdomain,
-					dev_Xigamadomain, Distance, LP, LXigama, Pstart, Xigamastart, numB);
-				// Check for any errors launching the kernel
-				cudaStatus = cudaGetLastError();
-				if (cudaStatus != cudaSuccess) {
-					fprintf(stderr, "Preweight launch failed: %s\n", cudaGetErrorString(cudaStatus));
-					mexPrintf("Preweight launch failed %s\n", cudaGetErrorString(cudaStatus));
-					mexPrintf("Error happens at numB: %d Pstart: %d Xigamastart: %d\n", numB, Pstart,
-						Xigamastart);
-					goto Error;
-				}
-			}
-
-			for (int numX = 0; numX < XigamaTime; numX++)
-			{
-				Xigamastart = numX * blockX;
-				//("%d %d\n", Pstart, Xigamastart);
-				PreWeight << <block_cubic, thread_cubic_residual >> > (dev_R, dev_Pdomain,
-					dev_Xigamadomain, Distance, LP, LXigama, Pstart, Xigamastart, numB);
-				// Check for any errors launching the kernel
-				cudaStatus = cudaGetLastError();
-				if (cudaStatus != cudaSuccess) {
-					fprintf(stderr, "Preweight launch failed: %s\n", cudaGetErrorString(cudaStatus));
-					mexPrintf("Preweight launch failed %s\n", cudaGetErrorString(cudaStatus));
-					mexPrintf("Error happens at numB: %d Pstart: %d Xigamastart: %d\n", numB, Pstart,
-						Xigamastart);
-					goto Error;
-				}
-			}
-		}
-		if (LXigamaResidual != 0)
-		{
-			Xigamastart = LXigama - LXigamaResidual;
-			for (int numP = 0; numP < PTime; numP++)
-			{
-				Pstart = numP * threadX;
-				//mexPrintf("%d %d\n", Pstart, Xigamastart);
-				PreWeight << <block_cubic_residual, thread_cubic >> > (dev_R, dev_Pdomain,
-					dev_Xigamadomain, Distance, LP, LXigama, Pstart, Xigamastart, numB);
-				// Check for any errors launching the kernel
-				cudaStatus = cudaGetLastError();
-				if (cudaStatus != cudaSuccess) {
-					fprintf(stderr, "Preweight launch failed: %s\n", cudaGetErrorString(cudaStatus));
-					mexPrintf("Preweight launch failed %s\n", cudaGetErrorString(cudaStatus));
-					mexPrintf("Error happens at numB: %d Pstart: %d Xigamastart: %d\n", numB, Pstart,
-						Xigamastart);
-					goto Error;
-				}
-			}
-		}
-	}
-
-	// cudaDeviceSynchronize waits for the kernel to finish, and returns
-	// any errors encountered during the launch.
-	cudaStatus = cudaDeviceSynchronize();
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching addKernel!\n", cudaStatus);
-		mexPrintf("cudaDeviceSynchronize returned error code after launching addKernel!\n");
-		goto Error1;
-	}
-
-	mexPrintf("Filtering\n");
-	// filtering 
 	// generate filter
 	mexPrintf("Generate filter\n");
 	cudaStatus = cudaMalloc((void**)&dev_G, LFilter * sizeof(float));
@@ -404,23 +325,23 @@ cudaError_t FDKpro(float *Display, const float *R, const float *Xigamadomain, co
 			goto Error;
 		}
 	}
-	
+
 	// store the result of convolution
 	cudaStatus = cudaMalloc((void**)&dev_Rcov, LR * sizeof(float));
 	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "dev_BetaScanRange cudaMalloc failed!\n");
-		mexPrintf("dev_BetaScanRange cudaMalloc failed! %s\n", cudaGetErrorString(cudaStatus));
+		fprintf(stderr, "dev_Rcov cudaMalloc failed!\n");
+		mexPrintf("dev_Rcov cudaMalloc failed! %s\n", cudaGetErrorString(cudaStatus));
 		goto Error;
 	}
 	cudaMemset(dev_Rcov, 0, sizeof(float));
-	
+
 	// convolution with limited scale
 	gtime = ceil(1.0 * LP / Filterlengthlimit);
 	mexPrintf("gtime: %d\n", gtime);
 
 	for (int numB = 0; numB < LBeta; numB++)
 	{
-		Beta = BetaScanRange[numB];
+		//Beta = BetaScanRange[numB];
 		for (int numP = 0; numP < PTime; numP++)
 		{
 			for (int numX = 0; numX < XigamaTime; numX++)
@@ -441,14 +362,15 @@ cudaError_t FDKpro(float *Display, const float *R, const float *Xigamadomain, co
 					}
 					/*mexPrintf("gstart: %d\n", gstart);
 					mexPrintf("gend: %d\n", gend);*/
-					Filter << <block_cubic, thread_cubic >> > (dev_Rcov, dev_R, dev_G, PInt, LP, LXigama,
+					PreWeightFilter << <block_cubic, thread_cubic >> > (dev_Rcov, dev_R, dev_Pdomain,
+						dev_Xigamadomain, Distance, dev_G, PInt, LP, LXigama,
 						Pstart, Xigamastart, numB, gstart, gend);
 					// Check for any errors launching the kernel
 					cudaStatus = cudaGetLastError();
 					if (cudaStatus != cudaSuccess) {
 						fprintf(stderr, "Filter launch failed: %s\n", cudaGetErrorString(cudaStatus));
 						mexPrintf("Filter launch failed %s\n", cudaGetErrorString(cudaStatus));
-						mexPrintf("Error happens at numB: %d Pstart: %d Xigamastart: %d numg: %d\n", 
+						mexPrintf("Error happens at numB: %d Pstart: %d Xigamastart: %d numg: %d\n",
 							numB, Pstart, Xigamastart, numg);
 						goto Error;
 					}
@@ -476,7 +398,8 @@ cudaError_t FDKpro(float *Display, const float *R, const float *Xigamadomain, co
 					}
 					/*mexPrintf("gstart: %d\n", gstart);
 					mexPrintf("gend: %d\n", gend);*/
-					Filter << <block_cubic_residual, thread_cubic_residual >> > (dev_Rcov, dev_R, dev_G, PInt, LP, LXigama,
+					PreWeightFilter << <block_cubic_residual, thread_cubic_residual >> > (dev_Rcov, dev_R, dev_Pdomain,
+						dev_Xigamadomain, Distance, dev_G, PInt, LP, LXigama,
 						Pstart, Xigamastart, numB, gstart, gend);
 					// Check for any errors launching the kernel
 					cudaStatus = cudaGetLastError();
@@ -507,7 +430,8 @@ cudaError_t FDKpro(float *Display, const float *R, const float *Xigamadomain, co
 					}
 					/*mexPrintf("gstart: %d\n", gstart);
 					mexPrintf("gend: %d\n", gend);*/
-					Filter << <block_cubic, thread_cubic_residual >> > (dev_Rcov, dev_R, dev_G, PInt, LP, LXigama,
+					PreWeightFilter << <block_cubic, thread_cubic_residual >> > (dev_Rcov, dev_R, dev_Pdomain,
+						dev_Xigamadomain, Distance, dev_G, PInt, LP, LXigama,
 						Pstart, Xigamastart, numB, gstart, gend);
 					// Check for any errors launching the kernel
 					cudaStatus = cudaGetLastError();
@@ -541,7 +465,8 @@ cudaError_t FDKpro(float *Display, const float *R, const float *Xigamadomain, co
 					}
 					/*mexPrintf("gstart: %d\n", gstart);
 					mexPrintf("gend: %d\n", gend);*/
-					Filter << <block_cubic_residual, thread_cubic >> > (dev_Rcov, dev_R, dev_G, PInt, LP, LXigama,
+					PreWeightFilter << <block_cubic_residual, thread_cubic >> > (dev_Rcov, dev_R, dev_Pdomain,
+						dev_Xigamadomain, Distance, dev_G, PInt, LP, LXigama,
 						Pstart, Xigamastart, numB, gstart, gend);
 					// Check for any errors launching the kernel
 					cudaStatus = cudaGetLastError();
@@ -562,7 +487,7 @@ Error1:
 	cudaFree(dev_G);
 
 	mexPrintf("backprojection\n");
-	
+
 	cudaStatus = cudaMalloc((void**)&dev_Size, 3 * sizeof(double));
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "dev_Size cudaMalloc failed!\n");
@@ -585,11 +510,11 @@ Error1:
 	}
 	cudaMemset(dev_Display, 0, sizeof(float));
 
-	//Backprojection
+	//Backprojection  
 	for (int betaIndex = 0; betaIndex < LBeta; betaIndex++)
 	{
 		BackProjection << <block_cubic_Bp, thread_cubic_Bp >> > (dev_Rcov, dev_Display, dev_Size, t_length, s_length, z_length,
-			BetaScanRange[betaIndex], Distance, dev_Pdomain, dev_Xigamadomain, PInt, XigamaInt, BetaScanInt, minP, maxP, 
+			BetaScanRange[betaIndex], Distance, dev_Pdomain, dev_Xigamadomain, PInt, XigamaInt, BetaScanInt, minP, maxP,
 			minXigama, maxXigama, betaIndex, LP, LXigama);
 		// Check for any errors launching the kernel
 		cudaStatus = cudaGetLastError();
@@ -610,7 +535,7 @@ Error1:
 		goto Error;
 	}
 
-	 //Copy output vector from GPU buffer to host memory.
+	//Copy output vector from GPU buffer to host memory.
 	cudaStatus = cudaMemcpy(Display, dev_Display, LDisplay * sizeof(float), cudaMemcpyDeviceToHost);
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaMemcpy failed!\n");

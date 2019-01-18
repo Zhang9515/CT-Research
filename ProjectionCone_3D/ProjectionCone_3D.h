@@ -7,8 +7,12 @@
 #include <math.h>
 #include <string.h>
 #include <stdlib.h>
+// lab computer
 #include "G:\CUDA\Development\include\cuda_runtime.h"
 #include "G:\CUDA\Development\include\device_launch_parameters.h"
+// server2(maybe has changed)
+//#include "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.0\include\cuda_runtime.h"
+//#include "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.0\include\device_launch_parameters.h"
 using namespace std;
 #define MAX(x,y) (x>y?x:y)
 #define MIN(x,y) (x<y?x:y)
