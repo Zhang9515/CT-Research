@@ -21,8 +21,8 @@ using namespace std;
 #define ABS(x) (x>0?x:(-x))
 #define Distancesq(x1,y1,z1,x2,y2,z2) (pow2(x1-x2)+pow2(y1-y2)+pow2(z1-z2))
 #define MID(x,y) ((x+y)/2)
-#define threadX 512
-#define blockX 512
+#define threadX 256
+#define blockX 256
 #define Filterlengthlimit 900
 
 cudaError_t ProjectionCone_3D(const float *Pic, float *Projection, const float *BetaScanRange, const float *Pdomain,

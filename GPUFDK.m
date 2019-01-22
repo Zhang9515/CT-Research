@@ -33,10 +33,10 @@ clear ThoraxHD
 [ t_length , s_length , z_length ] = size ( pic ) ;              % store the size of picture ( pixels )
 
 % Size = [ t_length * 0.7480 ; s_length * 0.7480 ; z_length * 1 ] ;     % actual range ( should refer to dicom info)
-Size = [ 60 , 60 , 60 ] ;
+Size = [ 60 , 60 , 60 * z_length / t_length ] ;
 
 z_lengthrec = 256 ;    % reconstruction matrix size
-Sizerec = [ 60 , 60 , 60 * z_lengthrec / 512 ] ;     % reconstruction real size
+Sizerec = [ 60 , 60 , 60 * z_lengthrec / t_length ] ;     % reconstruction real size
 
 Rplane = Size(1) * sqrt ( 2 ) / 2 ;                    %  circumscribed circle radius of project in the plane
 
@@ -60,7 +60,7 @@ LXigama = length ( Xigamadomain ) ;
 Center_t = Size(1) / 2 ;  Center_s = Size(2) / 2 ;   Center_z = Size(3) / 2 ;          % define the center 
 
 % FanAmax = atan ( MaxP / ( Distance - Rplane ) ) ; 
-BetaScanInt = deg2rad(4) ;             % scanning internal    ( 0.3 exact )           
+BetaScanInt = deg2rad(1) ;             % scanning internal    ( 0.3 exact )           
 % MaxBeta = 180 + 2 * FanAmax * 180 / pi ;         % short scan 
 MaxBeta = deg2rad(360) ;
 BetaScanRange = BetaScanInt : BetaScanInt : MaxBeta  ;     % scanning range , angle between SO and aixs Y
@@ -75,7 +75,8 @@ picvector = reshape (pic, t_length * s_length * z_length, 1);
 % clear pic;
 
 Display = zeros ( t_length * s_length * z_lengthrec, 1 ) ; 
-LBetaPrime = floor ( ( 100 * 100 * 90 ) / ( LP * LXigama ) ) ;     % 400 * 400 * 90 is related to the quality of GPU
+LBetaPrime = floor ( ( 200 * 200 * 90 ) / ( LP * LXigama ) ) ;     % 700 * 700 * 90 is related to the quality of GPU(1080ti)
+                                                                                                   % 300*300*90 (1060)
 times = ceil ( LBeta / LBetaPrime ) ;
 disp(['times: ',num2str(times)]);
 
@@ -94,7 +95,7 @@ for  split = 1 : times
     % size of R is ( LP * LXigama * LBeta, 1 )
     R = ProjectionCone_3D (picvector, t_length, s_length, z_length, Size, BetaScanRangePrime, Pdomain, Xigamadomain, Distance);
 %     R = reshape( R , LP , LXigama , LBetaPrime ) ;
-%     figure,imshow3Dfull(R, [])
+%     figure,imshow3Dfull(R, [], 'grey')
 
     %% GPU accelerate the preweight & filteration & backprojection
 

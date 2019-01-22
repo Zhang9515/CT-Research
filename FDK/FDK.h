@@ -19,8 +19,8 @@
 // Maximum threads of each dimension of a grid: 2097152(1024*2048) x 64 x 1024
 using namespace std;
 
-#define threadX 512
-#define blockX 512
+#define threadX 256
+#define blockX 256
 #define Filterlengthlimit 2048
 
 #define MIN(x,y) x<y?x:y

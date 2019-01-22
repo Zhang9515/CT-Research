@@ -2,15 +2,15 @@
 #include <cstdlib>
 // 2018/04/16
 //__device__ const double PI = 3.141592653589793;
-__device__ const double EPS = 1e-6;
+__device__ const double EPS = 1e-15;
 
 __global__ void ProjectionCone(const float *dev_Pic, float *dev_Projection, const float *dev_Pdomain, const float *dev_Xigamadomain,
 	const double Center_t, const double Center_s, const double Center_z, const double *dev_resolution,
 	const int t_length, const int s_length, const int z_length, const float Beta, const int numB, const int Pstart,
 	const int Xigamastart, const double Distance, const int LP, const int LXigama, const float *dev_RandomErr)
 {  
-	const unsigned int Pindex = threadIdx.x + Pstart;
-	const unsigned int  Xigamaindex = blockIdx.x + Xigamastart;
+	const unsigned short Pindex = threadIdx.x + Pstart;
+	const unsigned short  Xigamaindex = blockIdx.x + Xigamastart;
 
 	const unsigned long threadid = numB * LXigama * LP + Xigamaindex * LP + Pindex;
 
@@ -18,6 +18,8 @@ __global__ void ProjectionCone(const float *dev_Pic, float *dev_Projection, cons
 
 	float P = dev_Pdomain[Pindex];
 	float Xigama = dev_Xigamadomain[Xigamaindex];
+
+	double resolution_1 = dev_resolution[0]; double resolution_2 = dev_resolution[1]; double resolution_3 = dev_resolution[2];
 
 	// according to euler equation   
 	double source_t = Center_t - Distance * sin(Beta);      // define the source in matlab coordinate
@@ -37,6 +39,10 @@ __global__ void ProjectionCone(const float *dev_Pic, float *dev_Projection, cons
 	double DetectPoint_tend = Center_t + Smax * sin(Theta) * cos(Beta) - (Distance - Smax * cos(Theta) * cos(Gama)) * sin(Beta);
 	double DetectPoint_send = Center_s + Smax * sin(Theta) * sin(Beta) + (Distance - Smax * cos(Theta) * cos(Gama)) * cos(Beta);
 	double DetectPoint_zend = Center_z + Smax * cos(Theta) * sin(Gama);
+
+	double T2S = (DetectPoint_send - source_s) / (DetectPoint_tend - source_t + EPS); double S2T = 1 / (T2S + EPS);
+	double T2Z = (DetectPoint_zend - source_z) / (DetectPoint_tend - source_t + EPS); double Z2T = 1 / (T2Z + EPS);
+	double S2Z = T2Z / (T2S + EPS); double Z2S = T2S / (T2Z + EPS);
 
 	// to determine the range of t
 	short t_signal = 0;
@@ -63,25 +69,25 @@ __global__ void ProjectionCone(const float *dev_Pic, float *dev_Projection, cons
 		z_signal = -1;
 
 	// actual Size
-	double tlow = 0, thigh = t_length*dev_resolution[0], slow = 0, shigh = s_length*dev_resolution[1],
-		zlow = 0, zhigh = z_length*dev_resolution[2];
+	double tlow = 0, thigh = t_length*resolution_1, slow = 0, shigh = s_length*resolution_2,
+		zlow = 0, zhigh = z_length*resolution_3;
 
 	//compute the first and last point in the ROI
 	// using DetectPoint_end set up projection equation
-	double tlow_s = source_s + (tlow - source_t) * (DetectPoint_send - source_s) / (DetectPoint_tend - source_t + EPS);
-	double tlow_z = source_z + (tlow - source_t) * (DetectPoint_zend - source_z) / (DetectPoint_tend - source_t + EPS);
-	double thigh_s = source_s + (thigh - source_t) * (DetectPoint_send - source_s) / (DetectPoint_tend - source_t + EPS);
-	double thigh_z = source_z + (thigh - source_t) * (DetectPoint_zend - source_z) / (DetectPoint_tend - source_t + EPS);
+	double tlow_s = source_s + (tlow - source_t) * T2S;
+	double tlow_z = source_z + (tlow - source_t) * T2Z;
+	double thigh_s = source_s + (thigh - source_t) * T2S;
+	double thigh_z = source_z + (thigh - source_t) * T2Z;
 
-	double slow_t = source_t + (slow - source_s) * (DetectPoint_tend - source_t) / (DetectPoint_send - source_s + EPS);
-	double slow_z = source_z + (slow - source_s) * (DetectPoint_zend - source_z) / (DetectPoint_send - source_s + EPS);
-	double shigh_t = source_t + (shigh - source_s) * (DetectPoint_tend - source_t) / (DetectPoint_send - source_s + EPS);
-	double shigh_z = source_z + (shigh - source_s) * (DetectPoint_zend - source_z) / (DetectPoint_send - source_s + EPS);
+	double slow_t = source_t + (slow - source_s) * S2T;
+	double slow_z = source_z + (slow - source_s) * S2Z;
+	double shigh_t = source_t + (shigh - source_s) * S2T;
+	double shigh_z = source_z + (shigh - source_s) * S2Z;
 
-	double zlow_t = source_t + (zlow - source_z) * (DetectPoint_tend - source_t) / (DetectPoint_zend - source_z + EPS);
-	double zlow_s = source_s + (zlow - source_z) * (DetectPoint_send - source_s) / (DetectPoint_zend - source_z + EPS);
-	double zhigh_t = source_t + (zhigh - source_z) * (DetectPoint_tend - source_t) / (DetectPoint_zend - source_z + EPS);
-	double zhigh_s = source_s + (zhigh - source_z) * (DetectPoint_send - source_s) / (DetectPoint_zend - source_z + EPS);
+	double zlow_t = source_t + (zlow - source_z) * Z2T;
+	double zlow_s = source_s + (zlow - source_z) * Z2S;
+	double zhigh_t = source_t + (zhigh - source_z) * Z2T;
+	double zhigh_s = source_s + (zhigh - source_z) * Z2S;
 
 	//double *Range = new double [6];   //  XYXY small-big(number)
 	double T1 = 0, S1 = 0, Z1 = 0, T2 = 0, S2 = 0, Z2 = 0;
@@ -210,23 +216,22 @@ __global__ void ProjectionCone(const float *dev_Pic, float *dev_Projection, cons
 
 	//// enter the ROI
 	double weight = 0, Ray = 0;
-	int GridT = 0, GridS = 0, GridZ = 0;        // candidate crosspoint index in matlab(0~t_length)
+	short GridT = 0, GridS = 0, GridZ = 0;        // candidate crosspoint index in matlab(0~t_length)
 	double GridT_s = 0, GridT_z = 0,
 		GridS_t = 0, GridS_z = 0,
 		GridZ_t = 0, GridZ_s = 0;    // candidate crosspoint index in matlab(0~256)
-	int DetectPoint_t = 0, DetectPoint_s = 0, DetectPoint_z = 0;   // current pixel index in matlab pixel index in matlab(0~255)
+	short DetectPoint_t = 0, DetectPoint_s = 0, DetectPoint_z = 0;   // current pixel index in matlab pixel index in matlab(0~255)
 	long Pointid = 0;
-	double TCross = TStart / dev_resolution[0], SCross = SStart / dev_resolution[1],
-		ZCross = ZStart / dev_resolution[2];     // current crosspoint index in matlab(0~256)
+	double TCross = TStart / resolution_1, SCross = SStart / resolution_2,
+		ZCross = ZStart / resolution_3;     // current crosspoint index in matlab(0~256)
 	
-	int i = 0;
 	//while (((XCross * dev_resolution[1]) >= Range[0]) && ((XCross * dev_resolution[1]) <= Range[2]) 
 	//	&& ((YCross * dev_resolution[0]) >= Range[1]) && ((YCross * dev_resolution[0]) <= Range[3]))
-	while (i < (t_length + s_length + z_length -2))
+
+	for (short i = 0;i<(t_length + s_length + z_length - 2);i++)
 	{
-		i++;
 		// judge whether XCross/YCross is integer
-		if (TCross - (double)((int)TCross) < EPS)
+		if (TCross - (double)((short)TCross) < EPS)
 		{
 			GridT = TCross + t_signal;
 		}
@@ -234,10 +239,10 @@ __global__ void ProjectionCone(const float *dev_Pic, float *dev_Projection, cons
 		{
 			GridT = floor(TCross) + flag1to1or_1to0(t_signal);
 		}
-		GridT_s = (source_s + (GridT * dev_resolution[0] - source_t) * (DetectPoint_send - source_s) / (DetectPoint_tend - source_t + EPS)) / dev_resolution[1];
-		GridT_z = (source_z + (GridT * dev_resolution[0] - source_t) * (DetectPoint_zend - source_z) / (DetectPoint_tend - source_t + EPS)) / dev_resolution[2];
+		GridT_s = (source_s + (GridT * resolution_1 - source_t) * T2S) / resolution_2;
+		GridT_z = (source_z + (GridT * resolution_1 - source_t) * T2Z) / resolution_3;
 
-		if (SCross - (double)((int)SCross) < EPS)
+		if (SCross - (double)((short)SCross) < EPS)
 		{
 			GridS = SCross + s_signal;
 		}
@@ -245,10 +250,10 @@ __global__ void ProjectionCone(const float *dev_Pic, float *dev_Projection, cons
 		{
 			GridS = floor(SCross) + flag1to1or_1to0(s_signal);
 		}
-		GridS_t = (source_t + (GridS * dev_resolution[1] - source_s) * (DetectPoint_tend - source_t) / (DetectPoint_send - source_s + EPS)) / dev_resolution[0];
-		GridS_z = (source_z + (GridS * dev_resolution[1] - source_s) * (DetectPoint_zend - source_z) / (DetectPoint_send - source_s + EPS)) / dev_resolution[2];
+		GridS_t = (source_t + (GridS * resolution_2 - source_s) * S2T) / resolution_1;
+		GridS_z = (source_z + (GridS * resolution_2 - source_s) * S2Z) / resolution_3;
 
-		if (ZCross - (double)((int)ZCross) < EPS)
+		if (ZCross - (double)((short)ZCross) < EPS)
 		{
 			GridZ = ZCross + z_signal;
 		}
@@ -256,17 +261,17 @@ __global__ void ProjectionCone(const float *dev_Pic, float *dev_Projection, cons
 		{
 			GridZ = floor(ZCross) + flag1to1or_1to0(z_signal);
 		}
-		GridZ_t = (source_t + (GridZ * dev_resolution[2] - source_z) * (DetectPoint_tend - source_t) / (DetectPoint_zend - source_z + EPS)) / dev_resolution[0];
-		GridZ_s = (source_s + (GridZ * dev_resolution[2] - source_z) * (DetectPoint_send - source_s) / (DetectPoint_zend - source_z + EPS)) / dev_resolution[1];
+		GridZ_t = (source_t + (GridZ * resolution_3 - source_z) * Z2T) / resolution_1;
+		GridZ_s = (source_s + (GridZ * resolution_3 - source_z) * Z2S) / resolution_2;
 
 		//judge which crosspoint is the nearest, means the smallest distance
 		if (Distancesq(GridT, GridT_s, GridT_z, TCross, SCross, ZCross) <= Distancesq(GridS_t, GridS, GridS_z, TCross, SCross, ZCross))
 		{
 			if (Distancesq(GridZ_t, GridZ_s, GridZ, TCross, SCross, ZCross) <= Distancesq(GridT, GridT_s, GridT_z, TCross, SCross, ZCross))
 			{
-				weight = sqrt(Distancesq(GridZ_t * dev_resolution[0], GridZ_s * dev_resolution[1],
-					GridZ * dev_resolution[2], TCross * dev_resolution[0], SCross * dev_resolution[1], 
-					ZCross * dev_resolution[2]));
+				weight = sqrt(Distancesq(GridZ_t * resolution_1, GridZ_s * resolution_2,
+					GridZ * resolution_3, TCross * resolution_1, SCross * resolution_2,
+					ZCross * resolution_3));
 				DetectPoint_t = floor(MID(GridZ_t, TCross));                 // the midpoint locates the pixel
 				DetectPoint_s = floor(MID(GridZ_s, SCross));
 				DetectPoint_z = floor(MID(GridZ, ZCross));
@@ -276,9 +281,9 @@ __global__ void ProjectionCone(const float *dev_Pic, float *dev_Projection, cons
 			}
 			else
 			{
-				weight = sqrt(Distancesq(GridT * dev_resolution[0], GridT_s * dev_resolution[1],
-					GridT_z * dev_resolution[2], TCross * dev_resolution[0], SCross * dev_resolution[1],
-					ZCross * dev_resolution[2]));
+				weight = sqrt(Distancesq(GridT * resolution_1, GridT_s * resolution_2,
+					GridT_z * resolution_3, TCross * resolution_1, SCross * resolution_2,
+					ZCross * resolution_3));
 				DetectPoint_t = floor(MID(GridT, TCross));                 // the midpoint locates the pixel
 				DetectPoint_s = floor(MID(GridT_s, SCross));
 				DetectPoint_z = floor(MID(GridT_z, ZCross));
@@ -291,9 +296,9 @@ __global__ void ProjectionCone(const float *dev_Pic, float *dev_Projection, cons
 		{
 			if (Distancesq(GridZ_t, GridZ_s, GridZ, TCross, SCross, ZCross) <= Distancesq(GridS_t, GridS, GridS_z, TCross, SCross, ZCross))
 			{
-				weight = sqrt(Distancesq(GridZ_t * dev_resolution[0], GridZ_s * dev_resolution[1],
-					GridZ * dev_resolution[2], TCross * dev_resolution[0], SCross * dev_resolution[1],
-					ZCross * dev_resolution[2]));
+				weight = sqrt(Distancesq(GridZ_t * resolution_1, GridZ_s * resolution_2,
+					GridZ * resolution_3, TCross * resolution_1, SCross * resolution_2,
+					ZCross * resolution_3));
 				DetectPoint_t = floor(MID(GridZ_t, TCross));                 // the midpoint locates the pixel
 				DetectPoint_s = floor(MID(GridZ_s, SCross));
 				DetectPoint_z = floor(MID(GridZ, ZCross));
@@ -303,9 +308,9 @@ __global__ void ProjectionCone(const float *dev_Pic, float *dev_Projection, cons
 			}
 			else
 			{
-				weight = sqrt(Distancesq(GridS_t * dev_resolution[0], GridS * dev_resolution[1],
-					GridS_z * dev_resolution[2], TCross * dev_resolution[0], SCross * dev_resolution[1],
-					ZCross * dev_resolution[2]));
+				weight = sqrt(Distancesq(GridS_t * resolution_1, GridS * resolution_2,
+					GridS_z * resolution_3, TCross * resolution_1, SCross * resolution_2,
+					ZCross * resolution_3));
 				DetectPoint_t = floor(MID(GridS_t, TCross));                 // the midpoint locates the pixel
 				DetectPoint_s = floor(MID(GridS, SCross));
 				DetectPoint_z = floor(MID(GridS_z, ZCross));
@@ -316,8 +321,8 @@ __global__ void ProjectionCone(const float *dev_Pic, float *dev_Projection, cons
 		}
 
 		//judge whether the point is in the ROI
-		if ((DetectPoint_t >= 0) && (DetectPoint_t <= (t_length - 1)) && (DetectPoint_s >= 0) && (DetectPoint_s <= (s_length - 1))
-			&& (DetectPoint_z >= 0) && (DetectPoint_z <= (z_length - 1)))
+		if ((DetectPoint_t >= 0) && (DetectPoint_t < t_length) && (DetectPoint_s >= 0) && (DetectPoint_s < s_length)
+			&& (DetectPoint_z >= 0) && (DetectPoint_z < z_length))
 		{
 			Pointid = DetectPoint_z * t_length * s_length + DetectPoint_s * t_length + DetectPoint_t;
 			Ray += weight * dev_Pic[Pointid];
@@ -330,7 +335,7 @@ __global__ void ProjectionCone(const float *dev_Pic, float *dev_Projection, cons
 
 	}
 
-	//__syncthreads();
+	__syncthreads();
 	dev_Projection[threadid] = Ray;
 }
 
@@ -474,7 +479,7 @@ cudaError_t ProjectionCone_3D(const float *Pic, float *Projection, const float *
 		mexPrintf("dev_RandomErr cudaMemcpy failed!\n");
 		goto Error;
 	}
-	dev
+
 	mexPrintf("Launch computation projection of each lines.\n");
 	
 	// Launch a kernel on the GPU with one thread for each element.
@@ -491,6 +496,15 @@ cudaError_t ProjectionCone_3D(const float *Pic, float *Projection, const float *
 				ProjectionCone << <block_cubic, thread_cubic >> >(dev_Pic, dev_Projection, dev_Pdomain, dev_Xigamadomain,
 					Center_t, Center_s, Center_z, dev_resolution, t_length, s_length, z_length, Beta, numB, Pstart, Xigamastart,
 					Distance, LP, LXigama, dev_RandomErr);
+				// Check for any errors launching the kernel
+				cudaStatus = cudaGetLastError();
+				if (cudaStatus != cudaSuccess) {
+					fprintf(stderr, "ProjectionCone launch failed: %s\n", cudaGetErrorString(cudaStatus));
+					mexPrintf("ProjectionCone launch failed %s\n", cudaGetErrorString(cudaStatus));
+					mexPrintf("Error happens at numB: %d Pstart: %d Xigamastart: %d \n",
+						numB, Pstart, Xigamastart);
+					goto Error;
+				}
 			}		
 		}
 		
@@ -504,6 +518,15 @@ cudaError_t ProjectionCone_3D(const float *Pic, float *Projection, const float *
 				ProjectionCone << <block_cubic_residual, thread_cubic_residual >> >(dev_Pic, dev_Projection, dev_Pdomain, dev_Xigamadomain,
 					Center_t, Center_s, Center_z, dev_resolution, t_length, s_length, z_length, Beta, numB, Pstart, Xigamastart,
 					Distance, LP, LXigama, dev_RandomErr);
+				// Check for any errors launching the kernel
+				cudaStatus = cudaGetLastError();
+				if (cudaStatus != cudaSuccess) {
+					fprintf(stderr, "ProjectionCone launch failed: %s\n", cudaGetErrorString(cudaStatus));
+					mexPrintf("ProjectionCone launch failed %s\n", cudaGetErrorString(cudaStatus));
+					mexPrintf("Error happens at numB: %d Pstart: %d Xigamastart: %d \n",
+						numB, Pstart, Xigamastart);
+					goto Error;
+				}
 			}
 
 			for (int numX = 0; numX < XigamaTime; numX++)
@@ -513,6 +536,15 @@ cudaError_t ProjectionCone_3D(const float *Pic, float *Projection, const float *
 				ProjectionCone << <block_cubic, thread_cubic_residual >> >(dev_Pic, dev_Projection, dev_Pdomain, dev_Xigamadomain,
 					Center_t, Center_s, Center_z, dev_resolution, t_length, s_length, z_length, Beta, numB, Pstart, Xigamastart,
 					Distance, LP, LXigama, dev_RandomErr);
+				// Check for any errors launching the kernel
+				cudaStatus = cudaGetLastError();
+				if (cudaStatus != cudaSuccess) {
+					fprintf(stderr, "ProjectionCone launch failed: %s\n", cudaGetErrorString(cudaStatus));
+					mexPrintf("ProjectionCone launch failed %s\n", cudaGetErrorString(cudaStatus));
+					mexPrintf("Error happens at numB: %d Pstart: %d Xigamastart: %d \n",
+						numB, Pstart, Xigamastart);
+					goto Error;
+				}
 			}				
 		}
 		if (LXigamaResidual != 0)
@@ -525,6 +557,15 @@ cudaError_t ProjectionCone_3D(const float *Pic, float *Projection, const float *
 				ProjectionCone << <block_cubic_residual, thread_cubic >> >(dev_Pic, dev_Projection, dev_Pdomain, dev_Xigamadomain,
 					Center_t, Center_s, Center_z, dev_resolution, t_length, s_length, z_length, Beta, numB, Pstart, Xigamastart,
 					Distance, LP, LXigama, dev_RandomErr);
+				// Check for any errors launching the kernel
+				cudaStatus = cudaGetLastError();
+				if (cudaStatus != cudaSuccess) {
+					fprintf(stderr, "ProjectionCone launch failed: %s\n", cudaGetErrorString(cudaStatus));
+					mexPrintf("ProjectionCone launch failed %s\n", cudaGetErrorString(cudaStatus));
+					mexPrintf("Error happens at numB: %d Pstart: %d Xigamastart: %d \n",
+						numB, Pstart, Xigamastart);
+					goto Error;
+				}
 			}		
 		}
 	}
