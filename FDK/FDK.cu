@@ -76,23 +76,27 @@ __global__ void BackProjection(const float *dev_Rcov, float *dev_Display, const 
 	double Weight;
 	unsigned long thread_id;
 
+	// this is a little different from code on MATLAB
+	image_t = (Tindex + 0.5) * Resolution_t - Center_t;    // image pixel in ground coordinate
+	image_s = (Sindex + 0.5) * Resolution_s - Center_s;
+
+	dect_t = image_t * cos(Beta) + image_s * sin(Beta);   // rotate in ground coordinate
+	dect_s = -image_t * sin(Beta) + image_s * cos(Beta);
+
+	LengthRatio = Distance / (Distance - dect_s);    // define the projection position on the detector	
+	P = dect_t * LengthRatio;
+
 	for (int Zindex = 0; Zindex < z_length; Zindex++)
 	{
 		// this is a little different from code on MATLAB
-		image_t = (Tindex + 0.5) * Resolution_t - Center_t;
-		image_s = (Sindex + 0.5) * Resolution_s - Center_s;
+
 		image_z = (Zindex + 0.5) * Resolution_z - Center_z;     // image pixel in ground coordinate
 
-																// rotate in ground coordinate
-		dect_t = image_t * cos(Beta) + image_s * sin(Beta);
-		dect_s = -image_t * sin(Beta) + image_s * cos(Beta);
-		dect_z = image_z;
-
-		// define the projection position on the detector
-		LengthRatio = Distance / (Distance - dect_s);
+		dect_z = image_z;        // rotate in ground coordinate
+		
+		// define the projection position on the detector		
 		Xigama = dect_z * LengthRatio;
-		P = dect_t * LengthRatio;
-
+		
 		if ((P >= minP) && (P < maxP) && (Xigama >= minXigama) && (Xigama < maxXigama))
 		{
 			XigamaN1index = floor(fabs(Xigama - dev_Xigamadomain[0]) / XigamaInt);

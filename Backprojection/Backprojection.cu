@@ -8,13 +8,13 @@ __global__ void BackProjection(const float *dev_R, float *dev_Display, const dou
 	const int t_length, const int s_length, const int z_length, const float Beta, const double Distance, 
 	const float *dev_Pdomain, const float *dev_Xigamadomain, const float PInt, const float XigamaInt, 
 	const float BetaScanInt, const float minP, const float maxP, const float minXigama, const float maxXigama, 
-	const int betaIndex, const int LP, const int LXigama)
+	const int betaIndex, const int LP, const int LXigama, const int T_start, const int S_start)
 {
-	const unsigned int Tindex = threadIdx.x;
-	const unsigned int Sindex = blockIdx.x;
-	const unsigned int Zindex = blockIdx.y;
-	const unsigned long thread_id = Zindex * (gridDim.x * blockDim.x)
-		+ Sindex * blockDim.x + Tindex;
+	const unsigned int Tindex = T_start + threadIdx.x;
+	const unsigned int Sindex = S_start + blockIdx.x;
+	//const unsigned int Zindex = blockIdx.y;
+	const unsigned long thread_id = Zindex * (t_length * s_length)
+		+ Sindex * t_length + Tindex;
 	// initialize
 
 	const double Resolution_t = 1.0 * dev_Size[0] / t_length;
@@ -42,7 +42,7 @@ __global__ void BackProjection(const float *dev_R, float *dev_Display, const dou
 	double Xigama = dect_z * LengthRatio;
 	double P = dect_t * LengthRatio;
 
-	unsigned int XigamaN1index = 0, XigamaN2index = 0, PN1index = 0, PN2index = 0;
+	unsigned short XigamaN1index = 0, XigamaN2index = 0, PN1index = 0, PN2index = 0;
 	double P_domain1 = 0, P_domain2 = 0, Xigama_domain1 = 0, Xigama_domain2 = 0;
 	double Xig1 = 0, Xig2 = 0, P1 = 0, P2 = 0;
 	double Display_pBeta = 0;
@@ -304,34 +304,31 @@ cudaError_t BackPro(float *Display, const float *R, const float *Xigamadomain, c
 	const long LR = LP * LXigama * LBeta;
 	const int LFilter = 2 * LP - 1;
 
-	int thread_cubic_x = MIN(threadX, LP);
-	int block_cubic_x = MIN(blockX, LXigama);
+	short thread_cubic_Bp_x = MIN(threadX, t_length);
+	short block_cubic_Bp_x = MIN(blockX, s_length);
 
-	const dim3 thread_cubic(thread_cubic_x, 1, 1);
-	const dim3 block_cubic(block_cubic_x, 1, 1);
+	const dim3 thread_cubic_Bp(thread_cubic_Bp_x, 1, 1);
+	const dim3 block_cubic_Bp(block_cubic_Bp_x, 1, 1);
 
-	dim3 thread_cubic_residual(1, 1, 1);  // initial
-	dim3 block_cubic_residual(1, 1, 1);  // initial
+	dim3 thread_cubic_Bp_residual(1, 1, 1);  // initial
+	dim3 block_cubic_Bp_residual(1, 1, 1);  // initial
 
-	int LPResidual = LP % threadX;
-	int LXigamaResidual = LXigama % blockX;
-	int PTime = LP / threadX;
-	int XigamaTime = LXigama / blockX;
-	int Pstart = 0;
-	int Xigamastart = 0;
+	short TlengthResidual = t_length % threadX;
+	short SlengthResidual = s_length % blockX;
+	short T_Time = t_length / threadX;
+	short S_Time = s_length / blockX;
+	short T_start = 0;
+	short S_start = 0;
 	float Beta = 0;
 
-	if (LPResidual != 0)
+	if (TlengthResidual != 0)
 	{
-		thread_cubic_residual.x = LPResidual;
+		thread_cubic_Bp_residual.x = TlengthResidual;
 	}
-	if (LXigamaResidual != 0)
+	if (SlengthResidual != 0)
 	{
-		block_cubic_residual.x = LXigamaResidual;
+		block_cubic_Bp_residual.x = SlengthResidual;
 	}
-
-	const dim3 thread_cubic_Bp(t_length, 1, 1);
-	const dim3 block_cubic_Bp(s_length, z_length, 1);
 
 	cudaError_t cudaStatus;
 
@@ -437,9 +434,79 @@ cudaError_t BackPro(float *Display, const float *R, const float *Xigamadomain, c
 	//Backprojection
 	for (int betaIndex = 0; betaIndex < LBeta; betaIndex++)
 	{
-		BackProjection << <block_cubic_Bp, thread_cubic_Bp >> > (dev_R, dev_Display, dev_Size, t_length, s_length, z_length,
-			BetaScanRange[betaIndex], Distance, dev_Pdomain, dev_Xigamadomain, PInt, XigamaInt, BetaScanInt, minP, maxP, 
-			minXigama, maxXigama, betaIndex, LP, LXigama);
+		for (int numT = 0; numT < T_Time; numT++)
+		{
+			for (int numS = 0; numS < S_Time; numS++)
+			{
+				T_start = numT * threadX;
+				S_start = numS * blockX;
+				BackProjection << <block_cubic_Bp, thread_cubic_Bp >> > (dev_R, dev_Display, dev_Size, t_length, s_length, z_length,
+					BetaScanRange[betaIndex], Distance, dev_Pdomain, dev_Xigamadomain, PInt, XigamaInt, BetaScanInt, minP, maxP,
+					minXigama, maxXigama, betaIndex, LP, LXigama, T_start, S_start);
+				// Check for any errors launching the kernel
+				cudaStatus = cudaGetLastError();
+				if (cudaStatus != cudaSuccess) {
+					fprintf(stderr, "BackProjection launch failed: %s\n", cudaGetErrorString(cudaStatus));
+					mexPrintf("BackProjection launch failed %s\n", cudaGetErrorString(cudaStatus));
+					mexPrintf("Error happens at betaIndex: %d\n", betaIndex);
+					goto Error;
+				}
+			}
+		}
+		if (TlengthResidual != 0)
+		{
+			T_start = t_length - TlengthResidual;
+			for (int numS = 0; numS < S_Time; numS++)
+			{
+				S_start = numS * blockX;
+				BackProjection << <block_cubic_Bp, thread_cubic_Bp_residual >> > (dev_R, dev_Display, dev_Size, t_length, s_length, z_length,
+					BetaScanRange[betaIndex], Distance, dev_Pdomain, dev_Xigamadomain, PInt, XigamaInt, BetaScanInt, minP, maxP,
+					minXigama, maxXigama, betaIndex, LP, LXigama, T_start, S_start);
+				// Check for any errors launching the kernel
+				cudaStatus = cudaGetLastError();
+				if (cudaStatus != cudaSuccess) {
+					fprintf(stderr, "BackProjection launch failed: %s\n", cudaGetErrorString(cudaStatus));
+					mexPrintf("BackProjection launch failed %s\n", cudaGetErrorString(cudaStatus));
+					mexPrintf("Error happens at betaIndex: %d\n", betaIndex);
+					goto Error;
+				}
+			}
+			if (SlengthResidual != 0)
+			{
+				S_start = s_length - SlengthResidual;
+				BackProjection << <block_cubic_Bp_residual, thread_cubic_Bp_residual >> > (dev_R, dev_Display, dev_Size, t_length, s_length, z_length,
+					BetaScanRange[betaIndex], Distance, dev_Pdomain, dev_Xigamadomain, PInt, XigamaInt, BetaScanInt, minP, maxP,
+					minXigama, maxXigama, betaIndex, LP, LXigama, T_start, S_start);
+				// Check for any errors launching the kernel
+				cudaStatus = cudaGetLastError();
+				if (cudaStatus != cudaSuccess) {
+					fprintf(stderr, "BackProjection launch failed: %s\n", cudaGetErrorString(cudaStatus));
+					mexPrintf("BackProjection launch failed %s\n", cudaGetErrorString(cudaStatus));
+					mexPrintf("Error happens at betaIndex: %d\n", betaIndex);
+					goto Error;
+				}
+			}
+		}
+		if (SlengthResidual != 0)
+		{
+			S_start = s_length - SlengthResidual;
+			for (int numT = 0; numT < T_Time; numT++)
+			{
+				T_start = numT * threadX;
+				BackProjection << <block_cubic_Bp_residual, thread_cubic_Bp >> > (dev_R, dev_Display, dev_Size, t_length, s_length, z_length,
+					BetaScanRange[betaIndex], Distance, dev_Pdomain, dev_Xigamadomain, PInt, XigamaInt, BetaScanInt, minP, maxP,
+					minXigama, maxXigama, betaIndex, LP, LXigama, T_start, S_start);
+				// Check for any errors launching the kernel
+				cudaStatus = cudaGetLastError();
+				if (cudaStatus != cudaSuccess) {
+					fprintf(stderr, "BackProjection launch failed: %s\n", cudaGetErrorString(cudaStatus));
+					mexPrintf("BackProjection launch failed %s\n", cudaGetErrorString(cudaStatus));
+					mexPrintf("Error happens at betaIndex: %d\n", betaIndex);
+					goto Error;
+				}
+			}
+		}
+		
 	}
 
 	// Check for any errors launching the kernel
