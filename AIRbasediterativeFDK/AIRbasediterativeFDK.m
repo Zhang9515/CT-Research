@@ -1,6 +1,6 @@
 %% 2019/01/02 by ZXZ
 % AIR based iterative method
-
+EPS = 1e-15 ; 
 
 
 
@@ -22,14 +22,14 @@ patchsize = 3 ;
 miu = 2 ;     % related to step size of each iteration
 lamda = 1 ; 
 
-X = zeros ( prod(sizeofData) , 1 ) ;
-Z = zeros ( prod(sizeofData) , 3 ) ;
-U = zeros ( prod(sizeofData) , 3 ) ;
+X = zeros ( prod(sizeofData) , 1 ) ;       % corresponding to size of image
+Z = zeros ( prod(sizeofData) , 3 ) ;       % corresponding to size of image gradient
+U = zeros ( prod(sizeofData) , 3 ) ;       % corresponding to size of image gradient
 
 for i = 1 : 128 
     Input( : , : , i ) = imnoise ( squeeze( Input0( : , : , i ) )  ,'salt & pepper',0.02 ) ;
 end
-figure,imshow3Dfull ( Input , [ 0 1 ])
+% figure,imshow3Dfull ( Input , [ 0 1 ], 'grey')
 reference = reshape ( Input , prod(sizeofData) , 1 ) ;
 
 iterationNumMax = 100 ; 
@@ -41,8 +41,9 @@ for iter = 1 : iterationNumMax
     
     b = reference + miu * GOGtranspose3D( Z - U, patchsize , sizeofData ) ; 
     Residual = X + GOGtranspose3D ( GradientOfGaussian3D ( X , patchsize , sizeofData ) , patchsize , sizeofData ) - b ;
-    alpha = dot ( Residual ,Residual ) / ( dot ( Residual , Residual + GOGtranspose3D ...
-        ( GradientOfGaussian3D ( Residual , patchsize , sizeofData ) , patchsize , sizeofData ) ) + 1e-6 ) ;
+    % alpha = rTr/rTpr 
+    alpha = dot ( Residual ,Residual ) / ( dot ( Residual , Residual + miu * GOGtranspose3D ...
+        ( GradientOfGaussian3D ( Residual , patchsize , sizeofData ) , patchsize , sizeofData ) ) + EPS ) ;
     
     X = X - alpha * Residual ; 
     X = max ( X , 0 ) ;      % non-negative constrained
@@ -60,7 +61,7 @@ for iter = 1 : iterationNumMax
 end
 
 Display = reshape ( X , sizeofData ) ; 
-figure,imshow3Dfull ( Display , [ 0 1 ])
+figure,imshow3Dfull ( Display , [ 0 1 ] , 'grey')
 
 
 
