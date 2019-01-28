@@ -22,8 +22,8 @@
 tic 
 clear;
 
-% load('E:\ZXZ\Data\ThoraxHD.mat')
-load('G:\CTcode\Data\ThoraxHD_661.mat')
+load('E:\ZXZ\Data\ThoraxHD_661.mat')
+% load('G:\CTcode\Data\ThoraxHD_661.mat')
 pic = ThoraxHD_661 ;
 pic = single ( pic ) ;
 clear ThoraxHD
@@ -75,7 +75,7 @@ picvector = reshape (pic, t_length * s_length * z_length, 1);
 % clear pic;
 
 Display = zeros ( t_length * s_length * z_lengthrec, 1 ) ; 
-LBetaPrime = floor ( ( 200 * 200 * 90 ) / ( LP * LXigama ) ) ;     % 700 * 700 * 90 is related to the quality of GPU(1080ti)
+LBetaPrime = floor ( ( 700 * 700 * 90 ) / ( LP * LXigama ) ) ;     % 700 * 700 * 90 is related to the quality of GPU(1080ti)
                                                                                                    % 300*300*90 (1060)
 times = ceil ( LBeta / LBetaPrime ) ;
 disp(['times: ',num2str(times)]);
