@@ -27,9 +27,9 @@ Z = zeros ( prod(sizeofData) , 3 ) ;
 U = zeros ( prod(sizeofData) , 3 ) ;
 
 for i = 1 : 128 
-    Input( : , : , i ) = imnoise ( squeeze( Input0( : , : , i ) )  ,'salt & pepper', 0.02 ) ;
+    Input( : , : , i ) = imnoise ( squeeze( Input0( : , : , i ) )  ,'salt & pepper',0.02 ) ;
 end
-figure,imshow3Dfull ( Input , [ 0 1 ],'grey')
+figure,imshow3Dfull ( Input , [ 0 1 ])
 reference = reshape ( Input , prod(sizeofData) , 1 ) ;
 
 iterationNumMax = 100 ; 
@@ -60,7 +60,7 @@ for iter = 1 : iterationNumMax
 end
 
 Display = reshape ( X , sizeofData ) ; 
-figure,imshow3Dfull ( Display , [ 0 1 ],'grey')
+figure,imshow3Dfull ( Display , [ 0 1 ])
 
 
 
