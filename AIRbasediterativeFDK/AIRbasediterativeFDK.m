@@ -20,7 +20,7 @@ Input0 = phantom3d( 'Modified Shepp-Logan' , 128 ) ;
 sizeofData = [ 128 , 128 , 128 ] ;
 patchsize = 3 ; 
 miu = 2 ;     % related to step size of each iteration
-lamda = 1 ; 
+lamda = 0.1 ; 
 
 X = zeros ( prod(sizeofData) , 1 ) ;       % corresponding to size of image
 Z = zeros ( prod(sizeofData) , 3 ) ;       % corresponding to size of image gradient
@@ -29,10 +29,12 @@ U = zeros ( prod(sizeofData) , 3 ) ;       % corresponding to size of image grad
 for i = 1 : 128 
     Input( : , : , i ) = imnoise ( squeeze( Input0( : , : , i ) )  ,'salt & pepper',0.02 ) ;
 end
+Input = Input + ( Input - Input0 ) * 0.5 ;    % scale down the salt & pepper noise
+
 % figure,imshow3Dfull ( Input , [ 0 1 ], 'grey')
 reference = reshape ( Input , prod(sizeofData) , 1 ) ;
 
-iterationNumMax = 100 ; 
+iterationNumMax = 5 ; 
 RMSE_MOD = zeros( iterationNumMax ,1 ) ;
 ObjectValue = zeros( iterationNumMax ,1 ) ;
 
@@ -47,7 +49,7 @@ for iter = 1 : iterationNumMax
     
     X = X - alpha * Residual ; 
     X = max ( X , 0 ) ;      % non-negative constrained
-    X = min ( X , 1 ) ;      % non-negative constrained
+    X = min ( X , 1 ) ;      % max-value constrained
     
     gradientofX = GradientOfGaussian3D ( X , patchsize , sizeofData ) ; 
     
