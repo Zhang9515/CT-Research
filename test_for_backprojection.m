@@ -93,7 +93,7 @@ for  split = 1 : times
     %% GPU accelerate projection
 
     % size of R is ( LP * LXigama * LBeta, 1 )
-    R = ProjectionCone_3D (picvector, t_length, s_length, z_length, Size, BetaScanRangePrime, Pdomain, Xigamadomain, Distance);
+    R = ProjectionCone_3D (picvector, t_length, s_length, z_length, Size, BetaScanRangePrime, Pdomain, Xigamadomain, Didstance);
 %     R = reshape( R , LP , LXigama , LBetaPrime ) ;
 %     figure,imshow3Dfull(R, [], 'grey')
 

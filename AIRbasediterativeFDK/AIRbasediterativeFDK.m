@@ -1,5 +1,6 @@
 %% 2019/01/02 by ZXZ
 % AIR based iterative method
+tic
 EPS = 1e-15 ; 
 
 
@@ -18,9 +19,10 @@ EPS = 1e-15 ;
 
 Input0 = phantom3d( 'Modified Shepp-Logan' , 128 ) ;
 sizeofData = [ 128 , 128 , 128 ] ;
+Input0flat = reshape(Input0 , prod(sizeofData) , 1 ) ; 
 patchsize = 3 ; 
 miu = 2 ;     % related to step size of each iteration
-lamda = 0.1 ; 
+lamda = 0.5 ; 
 
 X = zeros ( prod(sizeofData) , 1 ) ;       % corresponding to size of image
 Z = zeros ( prod(sizeofData) , 3 ) ;       % corresponding to size of image gradient
@@ -56,16 +58,17 @@ for iter = 1 : iterationNumMax
     Z = isotropicISTA ( gradientofX + U , lamda / miu ) ; 
     
     U = U + gradientofX - Z ; 
-%     RMSE_MOD(iter) = RMSE( X , reference ) ; 
-%     disp(['RMSE: ',num2str(RMSE_MOD(iter))]) ;
+    RMSE_MOD(iter) = RMSE( X , Input0flat ) ; 
+    disp(['RMSE: ',num2str(RMSE_MOD(iter))]) ;
     ObjectValue(iter) = 0.5 * norm( X - reference , 2 ) + lamda * norm( gradientofX , 1) ; 
     disp(['ObjectValue: ',num2str(ObjectValue(iter))]) ;
 end
 
 Display = reshape ( X , sizeofData ) ; 
 figure,imshow3Dfull ( Display , [ 0 1 ] , 'grey')
-
-
+RMSEDisplay = RMSE3d(Input0, Display) ;
+disp(['RMSEDisplay: ',num2str(RMSEDisplay)]) ;
+toc
 
 
 

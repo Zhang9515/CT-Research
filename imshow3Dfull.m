@@ -7,6 +7,8 @@ function  imshow3Dfull( Img, disprange, Way )
 % imshow3Dfull ( Image )
 % imshow3Dfull ( Image , [] )
 % imshow3Dfull ( Image , [LOW HIGH] )
+% imshow3Dfull ( Image , [LOW HIGH] , Way )
+% defaults = {'fake color','grey'} ;
 %   
 %    Image:      3D image MxNxK (K slices of MxN images) 
 %    [LOW HIGH]: display range that controls the display intensity range of
