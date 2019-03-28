@@ -2,15 +2,15 @@
 // 2018/04/09
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[])
 {
-		const double *Pic = mxGetPr(prhs[0]);
+		const float *Pic = (float*)mxGetPr(prhs[0]);
 		const int height = (int)mxGetScalar(prhs[1]);
 		const int width = (int)mxGetScalar(prhs[2]);
 		const double *Size = mxGetPr(prhs[3]);
 		const double Center_y = Size[0]/2;    // vertical
 		const double Center_x = Size[1]/2;    // horizontal
-		const double *thetaRange = mxGetPr(prhs[4]);
+		const float *thetaRange = (float*)mxGetPr(prhs[4]);
 		const int Ltheta = mxGetM(prhs[4]);
-		const double *t_range = mxGetPr(prhs[5]);
+		const float *t_range = (float*)mxGetPr(prhs[5]);
 		const int Lt = mxGetM(prhs[5]);
 		const long LMat = Ltheta * Lt;
 
@@ -33,7 +33,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[])
 			return;
 		}
 
-		memcpy(ProjectionParallel, ProjectionParallelcuda, LMat * sizeof(double));
+		// mxCreateDoubleMatrix: store unit is double, every output should be converted to double explicitly 
+
+		for (long num = 0; num < LMat; num++)
+			ProjectionParallel[num] = (double)ProjectionParallelcuda[num];
+
+		//memcpy(ProjectionParallel, ProjectionParallelcuda, LMat * sizeof(double));
 
 		// cudaDeviceReset must be called before exiting in order for profiling and
 		// tracing tools such as Nsight and Visual Profiler to show complete traces.

@@ -5,11 +5,11 @@ tic
 % close all;
 %%
 % parameter define
-thetaint = 0.3 ;                                                                 % theta unit 
-thetaRange = thetaint : thetaint : 360 ;                                % radon scanning range
-Ltheta = length ( thetaRange ) ; 
 
-pic = StandardPhantom ( 513 ) ;
+% pic = StandardPhantom ( 256 ) ;
+load 'E:\ZXZ\Data\trial2D'
+pic = single(trial2D) ; 
+
 Size = [ 60 , 60 ] ;                                  % actual range
 
 [ height , width ] = size ( pic ) ;              % store the size of picture
@@ -18,11 +18,25 @@ Center_i = Size ( 1 ) / 2 ;  Center_j = Size ( 1 ) / 2 ;      % define the cente
 Rpic = 0.5 * sqrt ( 2 ) * Size ( 1 ) ; 
 
 tmax = round ( Rpic * 1.1 ) ;
-t_int = 0.1 ;
+t_int = 1 ;
 t_range =  -tmax : t_int : tmax ;
 Lt = length ( t_range ) ;
 
+thetaint = deg2rad(1) ;     % theta unit 
+Maxtheta = deg2rad(360) ;      
+thetaRange = thetaint : thetaint : Maxtheta ;                                % radon scanning range
+Ltheta = length ( thetaRange ) ; 
+
 R = zeros ( Lt ,  Ltheta ) ;   % create space to store fan projection
+
+%% GPU accelerated Siddon projection
+
+picvector = single( reshape (pic, height * width , 1) ) ;
+% t_range = single(t_range') ; thetaRange = single( thetaRange' ) ;
+R = ProjectionParallel_2D( picvector , height , width , Size , single(thetaRange') , single(t_range') ) ;     % store parallel beam projection
+% R = ProjectionParallel_2D( picvector , height , width , Size , thetaRange , t_range ) ;
+R = reshape( R , Lt , Ltheta ) ;
+figure,imshow(R,[])
 
 %% my radon
 
@@ -191,43 +205,43 @@ R = zeros ( Lt ,  Ltheta ) ;   % create space to store fan projection
 %% formualr
 %         A    a     b    x0    y0    phi
 %        ---------------------------------
-shep = [  2   .69   .92    0     0     0                                                      % in ground coordinate
-        -.98 .6624 .8740   0  -.0184   0
-        -.02 .3100 .1100   .22    0    72
-         -.02 .4100 .1600  -.22    0     108
-         .01 .2100 .2500   0    .35    0
-         .01 .0460 .0460   0    .1     0
-         .01 .0460 .0460   0   -.1     0
-         .01 .0460 .0230 -.08  -.605   0 
-         .01 .0230 .0230   0   -.606   0
-         .01 .0460 .0230   .06  -.605   90   ] ;
-     
-proportion = max ( Size ) / 2 ;                            % actual scale
-R = reshape ( R , 1 , [] ) ; 
-
-parfor num = 1 : Ltheta * Lt
-    
-        thetaindex = mod ( num - 1 ,  Ltheta ) + 1 ;
-        tindex = floor ( ( num - 1 ) / Ltheta ) + 1 ;
-        
-        thetaRadian =  thetaRange ( thetaindex ) * pi / 180 ;       % angle to radian            
-        t = t_range ( tindex ) ;      
-                    for n = 1 : 10
-                        x0 = shep ( n , 4 ) * proportion ; y0 = shep ( n , 5 ) * proportion ;              % oval information in ground coordinate
-                        s = sqrt ( x0^2 + y0^2 ) ;
-                        ggama = atan2 ( y0 , x0 ) ;
-                        alpaha = shep ( n , 6 ) * pi / 180 ;
-                        A = shep ( n , 2 ) * proportion ; B = shep ( n , 3 ) * proportion  ;    
-                        Rou = shep ( n , 1 ) ;                   
-                        ts = t - s * cos ( ggama - thetaRadian ) ;
-                        thetas = thetaRadian - alpaha ; 
-                        a2 = ( A * cos ( thetas ) )^2 + ( B * sin ( thetas ) )^2 ;
-                        if ( abs ( ts ) <= sqrt ( a2 ) )                                             % decide whether cross the oval
-                                R ( num ) = R ( num ) + 2 * Rou * A * B * sqrt ( a2 - ts^2 ) / a2 ;
-                        end                             
-                    end   
-end
-R = reshape ( R , Ltheta , Lt ) ;    
+% shep = [  2   .69   .92    0     0     0                                                      % in ground coordinate
+%         -.98 .6624 .8740   0  -.0184   0
+%         -.02 .3100 .1100   .22    0    72
+%          -.02 .4100 .1600  -.22    0     108
+%          .01 .2100 .2500   0    .35    0
+%          .01 .0460 .0460   0    .1     0
+%          .01 .0460 .0460   0   -.1     0
+%          .01 .0460 .0230 -.08  -.605   0 
+%          .01 .0230 .0230   0   -.606   0
+%          .01 .0460 .0230   .06  -.605   90   ] ;
+%      
+% proportion = max ( Size ) / 2 ;                            % actual scale
+% R = reshape ( R , 1 , [] ) ; 
+% 
+% parfor num = 1 : Ltheta * Lt
+%     
+%         thetaindex = mod ( num - 1 ,  Ltheta ) + 1 ;
+%         tindex = floor ( ( num - 1 ) / Ltheta ) + 1 ;
+%         
+%         thetaRadian =  thetaRange ( thetaindex ) * pi / 180 ;       % angle to radian            
+%         t = t_range ( tindex ) ;      
+%                     for n = 1 : 10
+%                         x0 = shep ( n , 4 ) * proportion ; y0 = shep ( n , 5 ) * proportion ;              % oval information in ground coordinate
+%                         s = sqrt ( x0^2 + y0^2 ) ;
+%                         ggama = atan2 ( y0 , x0 ) ;
+%                         alpaha = shep ( n , 6 ) * pi / 180 ;
+%                         A = shep ( n , 2 ) * proportion ; B = shep ( n , 3 ) * proportion  ;    
+%                         Rou = shep ( n , 1 ) ;                   
+%                         ts = t - s * cos ( ggama - thetaRadian ) ;
+%                         thetas = thetaRadian - alpaha ; 
+%                         a2 = ( A * cos ( thetas ) )^2 + ( B * sin ( thetas ) )^2 ;
+%                         if ( abs ( ts ) <= sqrt ( a2 ) )                                             % decide whether cross the oval
+%                                 R ( num ) = R ( num ) + 2 * Rou * A * B * sqrt ( a2 - ts^2 ) / a2 ;
+%                         end                             
+%                     end   
+% end
+% R = reshape ( R , Ltheta , Lt ) ;    
 
 % figure , imshow ( R , [] ) ; 
 
@@ -258,7 +272,7 @@ end
 
 x = zeros ( Ltheta , Lt ) ;
 parfor i = 1 : Ltheta
-    s = R ( i , : ) ;
+    s = R ( : , i ) ;
     xx = t_int * conv ( s , h' ) ;         %与滤波器卷积
     x ( i , : ) = xx ( Lt : 2 * Lt - 1 ) ;     %取卷积结果中心部分
 end
@@ -271,8 +285,8 @@ end
 %         xx ( : , i ) = cov ( H : 2 * H - 1 ) / Hammingsum ;
 % end
 
-% figure,imagesc(x);
-% title('Filtered image');
+figure,imshow(x,[]);
+title('Filtered image');
 %
 %% reconstruct
 

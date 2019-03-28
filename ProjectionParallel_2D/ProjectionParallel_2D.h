@@ -7,8 +7,12 @@
 #include <math.h>
 #include <string.h>
 #include <stdlib.h>
-#include "G:\CUDA\Development\include\cuda_runtime.h"
-#include "G:\CUDA\Development\include\device_launch_parameters.h"
+// lab computer
+//#include "G:\CUDA\Development\include\cuda_runtime.h"
+//#include "G:\CUDA\Development\include\device_launch_parameters.h"
+// server2(maybe has changed)
+#include "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.0\include\cuda_runtime.h"
+#include "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.0\include\device_launch_parameters.h"
 using namespace std;
 
 #define MAX(x,y) (x>y?x:y)
@@ -20,8 +24,9 @@ using namespace std;
 #define Distancesq(x1,y1,x2,y2) (pow2(x1-x2)+pow2(y1-y2))
 #define MID(x,y) ((x+y)/2)
 #define threadX 256
+#define blockX 256
 
-cudaError_t ProjectionParallel_2D(const double *Pic, double *Projection, const double *thetaRange, const double *t_Range,
+cudaError_t ProjectionParallel_2D(const float *Pic, double *Projection, const float *thetaRange, const float *t_Range,
 	const int height, const int width, const double Center_y, const double Center_x, const int Ltheta, const int Lt,
 	const double *resolution);
 
