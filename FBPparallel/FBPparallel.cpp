@@ -6,7 +6,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[])
 	//mexPrintf("hello!\n");
 	float *R = (float*)mxGetPr(prhs[0]);
 	const float *Pdomain = (float*)mxGetPr(prhs[1]);
-	const int LP = (int)mxGetM(prhs[1]);
+	const int LT = (int)mxGetM(prhs[1]);
 	const float *ThetaScanRange = (float*)mxGetPr(prhs[2]);
 	const int LTheta = (int)mxGetM(prhs[2]);
 	const double *Size = mxGetPr(prhs[2]);      // Size denotes the size of Display matrix(3d)
