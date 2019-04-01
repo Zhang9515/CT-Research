@@ -18,13 +18,13 @@ Center_i = Size ( 1 ) / 2 ;  Center_j = Size ( 1 ) / 2 ;      % define the cente
 Rpic = 0.5 * sqrt ( 2 ) * Size ( 1 ) ; 
 
 tmax = round ( Rpic * 1.1 ) ;
-t_int = 1 ;
+t_int = 0.1 ;
 t_range =  -tmax : t_int : tmax ;
 Lt = length ( t_range ) ;
 
-thetaint = deg2rad(1) ;     % theta unit 
+thetaint = deg2rad(0.5) ;     % theta unit 
 Maxtheta = deg2rad(360) ;      
-thetaRange = thetaint : thetaint : Maxtheta ;                                % radon scanning range
+thetaRange = thetaint : thetaint : Maxtheta ;                                % radon scanning range, radian
 Ltheta = length ( thetaRange ) ; 
 
 R = zeros ( Lt ,  Ltheta ) ;   % create space to store fan projection
@@ -285,15 +285,15 @@ end
 %         xx ( : , i ) = cov ( H : 2 * H - 1 ) / Hammingsum ;
 % end
 
-figure,imshow(x,[]);
-title('Filtered image');
+% figure,imshow(x,[]);
+% title('Filtered image');
 %
 %% reconstruct
 
 f = zeros ( size ( pic ) ) ;                        % store back-projection
-Resolution2 =  max ( Size ) / 513 ;                                 % define the resolution of reconstruction
+Resolution2 =  Size(1) / height ;                                 % define the resolution of reconstruction
 
-ProjectionShift = zeros ( Ltheta , 513 , 513 ) ;
+ProjectionShift = zeros ( Ltheta , height , width ) ;
 ProjectionShift = reshape ( ProjectionShift , 1 , [] ) ;
 
 parfor num = 1 : Ltheta * height * width                       %对每个像素点都进行反投影回抹重建
@@ -302,14 +302,14 @@ parfor num = 1 : Ltheta * height * width                       %对每个像素点都进
             j = floor ( ( num - ( i - 1 ) * width * Ltheta - 1 )  / Ltheta ) + 1 ; 
             k = mod ( num - 1 , Ltheta ) + 1 ;
                        
-            thetaradian = thetaRange ( k ) / 180 * pi ;
+            thetaradian = thetaRange ( k ) ;
             Point_i = ( i - 0.5 ) * Resolution2 ; Point_j = ( j - 0.5 ) * Resolution2 ;            % center point of the pixel
             
-            t = -( Point_i - Center_i ) * sin ( thetaradian ) + ( Point_j - Center_i ) * cos ( thetaradian ) ;
+            t = -( Point_i - Center_i ) * sin ( thetaradian ) + ( Point_j - Center_j ) * cos ( thetaradian ) ;
             t1index = floor ( ( t + tmax ) / t_int ) + 1 ;
             t2index = t1index + 1 ;
             if ( t >= min ( t_range ) && t < max ( t_range ) ) 
-                ProjectionShift ( num ) = ( ( t_range ( t2index ) - t ) * x ( k , t1index ) + ( t - t_range ( t1index ) ) * x ( k , t2index ) ) / t_int * thetaint * pi / 180 ;  % interpolation
+                ProjectionShift ( num ) = ( ( t_range ( t2index ) - t ) * x ( k , t1index ) + ( t - t_range ( t1index ) ) * x ( k , t2index ) ) / t_int * thetaint ;  % interpolation
             end
 end
 
@@ -318,14 +318,15 @@ for i = 1 : height
             f ( i , j )= sum ( ProjectionShift ( 1 + ( i - 1 ) * width * Ltheta + ( j - 1 ) * Ltheta : Ltheta + ( i - 1 ) * width * Ltheta + ( j - 1 ) * Ltheta ) ) ;
     end    
 end       
-figure , imshow ( f , [ 1 , 1.05 ] ) ;
+figure , imshow ( flipud(f) , [ 0 , 0.5 ] ) ;
 %figure,imshow(f,[]);
 title('Reconstructed image');
 %%   display
 
-figure,plot( 1 : size ( pic , 1 ) , f ( 257 , : ) , 1 : size ( pic , 1 ) , pic ( 257 , : ) ) ;
-title ( ' grey distrubition ' ) ;
-axis ( [ 0 512 1 1.05 ] ) ;
+% figure,plot( 1 : size ( pic , 1 ) , f ( 257 , : ) , 1 : size ( pic , 1 ) , pic ( 257 , : ) ) ;
+% title ( ' grey distrubition ' ) ;
+% axis ( [ 0 512 1 1.05 ] ) ;
+
 % aver=sum(sum(p))/(size(p,1)*size(p,2));
 % pd=double(p);
 % d=(sum(sum((pd-f).^2))/sum(sum((pd-aver).^2)))^0.5;
