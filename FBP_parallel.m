@@ -6,9 +6,9 @@ tic
 %%
 % parameter define
 
-% pic = StandardPhantom ( 256 ) ;
-load 'E:\ZXZ\Data\trial2D'
-pic = single(trial2D) ; 
+pic = StandardPhantom ( "shepp_logan" , 257 ) ;
+% load 'E:\ZXZ\Data\trial2D'
+% pic = trial2D ; 
 
 Size = [ 60 , 60 ] ;                                  % actual range
 
@@ -18,124 +18,113 @@ Center_i = Size ( 1 ) / 2 ;  Center_j = Size ( 1 ) / 2 ;      % define the cente
 Rpic = 0.5 * sqrt ( 2 ) * Size ( 1 ) ; 
 
 tmax = round ( Rpic * 1.1 ) ;
-t_int = 0.1 ;
+t_int = 0.5 ;
 t_range =  -tmax : t_int : tmax ;
 Lt = length ( t_range ) ;
 
-thetaint = deg2rad(0.5) ;     % theta unit 
+thetaint = deg2rad(1) ;     % theta unit 
 Maxtheta = deg2rad(360) ;      
 thetaRange = thetaint : thetaint : Maxtheta ;                                % radon scanning range, radian
 Ltheta = length ( thetaRange ) ; 
 
-R = zeros ( Lt ,  Ltheta ) ;   % create space to store fan projection
-
-%% GPU accelerated Siddon projection
-
-picvector = single( reshape (pic, height * width , 1) ) ;
-% t_range = single(t_range') ; thetaRange = single( thetaRange' ) ;
-R = ProjectionParallel_2D( picvector , height , width , Size , single(thetaRange') , single(t_range') ) ;     % store parallel beam projection
-% R = ProjectionParallel_2D( picvector , height , width , Size , thetaRange , t_range ) ;
-R = reshape( R , Lt , Ltheta ) ;
-figure,imshow(R,[])
-
 %% my radon
 
-% R = zeros ( length ( t_range ) ,  length ( theta ) ) ;   % create space to store fan projection
-% Smax = 2 * tmax ;
-% for theta_axis = 1 : length ( theta )
-% %         theta_axis = 90 ;
-%         
-%         thetaradian = theta ( theta_axis ) * pi / 180 ;
-%         Htransform ( 1 , 1 ) = cos ( thetaradian ) ;
-%         Htransform ( 1 , 2 ) = -sin ( thetaradian ) ;
-%         Htransform ( 2 , 1 ) = sin ( thetaradian ) ;
-%         Htransform ( 2 , 2 ) = cos ( thetaradian ) ;
-%         for t_axis = 1 : length ( t_range )
-% %                 t_axis = 109 ; 
-%                 T = t_range ( t_axis ) ;
-%                 Pstart = [ -tmax ; T ] ;
-%                 Pend = [ tmax ; T ] ; 
-%                 Resultstart = Htransform * Pstart ;
-%                 Resultend = Htransform * Pend ;
-%                 dect_istart = Resultstart ( 1 ) + Center_i ;
-%                 dect_jstart = Resultstart ( 2 ) + Center_j ;
-%                 dect_iend = Resultend ( 1 ) + Center_i ;
-%                 dect_jend = Resultend ( 2 ) + Center_j ;
-%                 
-%                 % define projection line direction and range of i and j
-%                 if ( floor ( dect_iend ) == floor ( dect_istart ) || ceil ( dect_iend ) == ceil ( dect_istart ) )    
-%                     i_range = [ ] ;
-%                 elseif ( dect_iend > dect_istart )                                                         
-%                      i_signal = 1 ;   
-%                      i_range = ceil ( dect_istart ) : floor ( dect_iend ) ;
-%                 elseif ( dect_iend < dect_istart )
-%                     i_signal = -1 ; 
-%                     i_range = ceil ( dect_iend ) : floor ( dect_istart ) ;
-%                 end
-%                 if ( floor ( dect_jend ) == floor ( dect_jstart ) || ceil ( dect_jend ) == ceil ( dect_jstart ) )
-%                      j_range = [ ] ;
-%                 elseif ( dect_jend > dect_jstart )
-%                     j_signal = 1 ; 
-%                     j_range = ceil ( dect_jstart ) : floor ( dect_jend ) ;
-%                 elseif ( dect_jend < dect_jstart )
-%                     j_signal = -1 ; 
-%                     j_range = ceil ( dect_jend ) : floor ( dect_jstart ) ;
-%                 end       
-%                 
-%                 Li = length ( i_range ) ; Lj = length ( j_range ) ;
-%                 ProjectionLine = zeros ( 3 , Li + Lj ) ;
-%                 ProjectionLine ( 1 , 1 : Li ) = abs ( ( i_range - dect_istart ) / ( dect_iend - dect_istart ) ) * Smax ;
-%                 ProjectionLine ( 2 , 1 : Li ) = i_range ;
-%                 ProjectionLine ( 3 , 1 : Li ) = 1 ;                              % 1 represents i
-%                 ProjectionLine ( 1 , ( Li + 1 ) : ( Li + Lj ) ) = abs ( ( j_range - dect_jstart ) / ( dect_jend - dect_jstart ) ) * Smax ;
-%                 ProjectionLine ( 2 , ( Li + 1 ) : ( Li + Lj ) ) = j_range ;
-%                 ProjectionLine ( 3 , ( Li + 1 ) : ( Li + Lj ) ) = 2 ;                              % 2 represents j
-%                 ProjectionLine = sortrows ( ProjectionLine' )' ;
-%                 DetectPoint_i = ceil ( dect_istart ) ; DetectPoint_j = ceil ( dect_jstart ) ;                   % start point of the line        
-% 
-%                 for n = 1 : length ( ProjectionLine )                                                                                    
-%                     if ( ProjectionLine ( 3 , n ) == 1 && Li ~= 0 )                                                               % define the pixel 
-%                             DetectPoint_i = ProjectionLine ( 2 , n ) + 0.5 + i_signal * 0.5 ; 
-%                     elseif ( ProjectionLine ( 3 , n ) == 2 && Lj ~= 0 )
-%                             DetectPoint_j = ProjectionLine ( 2 , n ) + 0.5 + j_signal * 0.5 ; 
-%                     end
-%                     
-%                     if ( Li == 0 && dect_istart == 0 && DetectPoint_j > 0 && DetectPoint_j <= width )                % boundary condition
-%                         f = pic ( 1 , DetectPoint_j ) / 2 ;
-%                         LengthUnit = ProjectionLine ( 1 , n + 1 ) - ProjectionLine ( 1 , n ) ;  
-%                         R ( t_axis , theta_axis ) = R ( t_axis , theta_axis ) + f * LengthUnit ;    
-%                     end   
-%                     if ( Lj == 0 && dect_jstart == 0 && DetectPoint_i > 0 && DetectPoint_i <= width )
-%                         f = pic ( DetectPoint_i , 1 ) / 2 ;
-%                          LengthUnit = ProjectionLine ( 1 , n + 1 ) - ProjectionLine ( 1 , n ) ;  
-%                         R ( t_axis , theta_axis ) = R ( t_axis , theta_axis ) + f * LengthUnit ;    
-%                     end   
-%                     
-%                     if ( DetectPoint_i > 0 && DetectPoint_i <= height && DetectPoint_j > 0 && DetectPoint_j <= width ) 
-%                          
-%                         if ( Li == 0 && dect_istart == DetectPoint_i )                        % condition when projection line overlay the axis line                
-%                              if ( dect_istart == height )
-%                                  f = pic ( DetectPoint_i , DetectPoint_j ) / 2 ;
-%                              else 
-%                                  f = ( pic ( DetectPoint_i , DetectPoint_j ) + pic ( DetectPoint_i + 1 , DetectPoint_j ) ) / 2 ;
-%                              end
-%                          elseif ( Lj == 0 && dect_jstart == DetectPoint_j ) 
-%                              if ( dect_jstart == width )
-%                                  f = pic ( DetectPoint_i , DetectPoint_j ) / 2 ;
-%                              else 
-%                                  f = ( pic ( DetectPoint_i , DetectPoint_j ) + pic ( DetectPoint_i , DetectPoint_j + 1 ) ) / 2 ;
-%                              end
-%                          else 
-%                                 f = pic ( DetectPoint_i , DetectPoint_j ) ;
-%                          end
-%                        
-%                          LengthUnit = ProjectionLine ( 1 , n + 1 ) - ProjectionLine ( 1 , n ) ;                     
-%                          R ( t_axis , theta_axis ) = R ( t_axis , theta_axis ) + f * LengthUnit ;    
-%                     end
-%                 end
-%         end
-% end
-% figure , imshow ( R ) ;             
+R = zeros ( Lt ,  Ltheta ) ;   % create space to store fan projection
+Smax = 2 * tmax ;
+for theta_axis = 1 : Ltheta
+%         theta_axis = 90 ;
+        
+        thetaradian = thetaRange ( theta_axis ) ;
+        Htransform ( 1 , 1 ) = cos ( thetaradian ) ;
+        Htransform ( 1 , 2 ) = -sin ( thetaradian ) ;
+        Htransform ( 2 , 1 ) = sin ( thetaradian ) ;
+        Htransform ( 2 , 2 ) = cos ( thetaradian ) ;
+        for t_axis = 1 : Lt
+%                 t_axis = 109 ; 
+                T = t_range ( t_axis ) ;
+                Pstart = [ -tmax ; T ] ;
+                Pend = [ tmax ; T ] ; 
+                Resultstart = Htransform * Pstart ;
+                Resultend = Htransform * Pend ;
+                dect_istart = Resultstart ( 1 ) + Center_i ;
+                dect_jstart = Resultstart ( 2 ) + Center_j ;
+                dect_iend = Resultend ( 1 ) + Center_i ;
+                dect_jend = Resultend ( 2 ) + Center_j ;
+                
+                % define projection line direction and range of i and j
+                if ( floor ( dect_iend ) == floor ( dect_istart ) || ceil ( dect_iend ) == ceil ( dect_istart ) )    
+                    i_range = [ ] ;
+                elseif ( dect_iend > dect_istart )                                                         
+                     i_signal = 1 ;   
+                     i_range = ceil ( dect_istart ) : floor ( dect_iend ) ;
+                elseif ( dect_iend < dect_istart )
+                    i_signal = -1 ; 
+                    i_range = ceil ( dect_iend ) : floor ( dect_istart ) ;
+                end
+                if ( floor ( dect_jend ) == floor ( dect_jstart ) || ceil ( dect_jend ) == ceil ( dect_jstart ) )
+                     j_range = [ ] ;
+                elseif ( dect_jend > dect_jstart )
+                    j_signal = 1 ; 
+                    j_range = ceil ( dect_jstart ) : floor ( dect_jend ) ;
+                elseif ( dect_jend < dect_jstart )
+                    j_signal = -1 ; 
+                    j_range = ceil ( dect_jend ) : floor ( dect_jstart ) ;
+                end       
+                
+                Li = length ( i_range ) ; Lj = length ( j_range ) ;
+                ProjectionLine = zeros ( 3 , Li + Lj ) ;
+                ProjectionLine ( 1 , 1 : Li ) = abs ( ( i_range - dect_istart ) / ( dect_iend - dect_istart ) ) * Smax ;
+                ProjectionLine ( 2 , 1 : Li ) = i_range ;
+                ProjectionLine ( 3 , 1 : Li ) = 1 ;                              % 1 represents i
+                ProjectionLine ( 1 , ( Li + 1 ) : ( Li + Lj ) ) = abs ( ( j_range - dect_jstart ) / ( dect_jend - dect_jstart ) ) * Smax ;
+                ProjectionLine ( 2 , ( Li + 1 ) : ( Li + Lj ) ) = j_range ;
+                ProjectionLine ( 3 , ( Li + 1 ) : ( Li + Lj ) ) = 2 ;                              % 2 represents j
+                ProjectionLine = sortrows ( ProjectionLine' )' ;
+                DetectPoint_i = ceil ( dect_istart ) ; DetectPoint_j = ceil ( dect_jstart ) ;                   % start point of the line        
+
+                for n = 1 : length ( ProjectionLine ) - 1                                                                                    
+                    if ( ProjectionLine ( 3 , n ) == 1 && Li ~= 0 )                                                               % define the pixel 
+                            DetectPoint_i = ProjectionLine ( 2 , n ) + 0.5 + i_signal * 0.5 ; 
+                    elseif ( ProjectionLine ( 3 , n ) == 2 && Lj ~= 0 )
+                            DetectPoint_j = ProjectionLine ( 2 , n ) + 0.5 + j_signal * 0.5 ; 
+                    end
+                    
+                    if ( Li == 0 && dect_istart == 0 && DetectPoint_j > 0 && DetectPoint_j <= width )                % boundary condition
+                        f = pic ( 1 , DetectPoint_j ) / 2 ;
+                        LengthUnit = ProjectionLine ( 1 , n + 1 ) - ProjectionLine ( 1 , n ) ;  
+                        R ( t_axis , theta_axis ) = R ( t_axis , theta_axis ) + f * LengthUnit ;    
+                    end   
+                    if ( Lj == 0 && dect_jstart == 0 && DetectPoint_i > 0 && DetectPoint_i <= width )
+                        f = pic ( DetectPoint_i , 1 ) / 2 ;
+                         LengthUnit = ProjectionLine ( 1 , n + 1 ) - ProjectionLine ( 1 , n ) ;  
+                        R ( t_axis , theta_axis ) = R ( t_axis , theta_axis ) + f * LengthUnit ;    
+                    end   
+                    
+                    if ( DetectPoint_i > 0 && DetectPoint_i <= height && DetectPoint_j > 0 && DetectPoint_j <= width ) 
+                         
+                        if ( Li == 0 && dect_istart == DetectPoint_i )                        % condition when projection line overlay the axis line                
+                             if ( dect_istart == height )
+                                 f = pic ( DetectPoint_i , DetectPoint_j ) / 2 ;
+                             else 
+                                 f = ( pic ( DetectPoint_i , DetectPoint_j ) + pic ( DetectPoint_i + 1 , DetectPoint_j ) ) / 2 ;
+                             end
+                         elseif ( Lj == 0 && dect_jstart == DetectPoint_j ) 
+                             if ( dect_jstart == width )
+                                 f = pic ( DetectPoint_i , DetectPoint_j ) / 2 ;
+                             else 
+                                 f = ( pic ( DetectPoint_i , DetectPoint_j ) + pic ( DetectPoint_i , DetectPoint_j + 1 ) ) / 2 ;
+                             end
+                         else 
+                                f = pic ( DetectPoint_i , DetectPoint_j ) ;
+                         end
+                       
+                         LengthUnit = ProjectionLine ( 1 , n + 1 ) - ProjectionLine ( 1 , n ) ;                     
+                         R ( t_axis , theta_axis ) = R ( t_axis , theta_axis ) + f * LengthUnit ;    
+                    end
+                end
+        end
+end
+figure , imshow ( R , [] ) ;             
 
 %%    raodn derived from fan projection 
 % BetaScanInt = 1 ;             % scanning internal

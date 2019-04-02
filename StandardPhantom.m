@@ -91,6 +91,7 @@ end
 function [e,n] = parse_inputs(varargin)
 %  e is the m-by-6 array which defines ellipses
 %  n is the size of the phantom brain image
+% *****option must be within double quotations
 
 n=256;     % The default size
 e = [];
