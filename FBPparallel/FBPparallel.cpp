@@ -5,15 +5,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[])
 
 	//mexPrintf("hello!\n");
 	float *R = (float*)mxGetPr(prhs[0]);
-	const float *Pdomain = (float*)mxGetPr(prhs[1]);
-	const int LT = (int)mxGetM(prhs[1]);
-	const float *ThetaScanRange = (float*)mxGetPr(prhs[2]);
-	const int LTheta = (int)mxGetM(prhs[2]);
-	const double *Size = mxGetPr(prhs[2]);      // Size denotes the size of Display matrix(3d)
+	const float *ThetaScanRange = (float*)mxGetPr(prhs[1]);
+	const int LTheta = (int)mxGetM(prhs[1]);
+	const float *Tdomain = (float*)mxGetPr(prhs[2]);
+	const int LT = (int)mxGetM(prhs[2]);
+	const double *Size = mxGetPr(prhs[3]);      // Size denotes the actual size of Display matrix(2d)
 	const int t_length = (int)mxGetScalar(prhs[4]);
 	const int s_length = (int)mxGetScalar(prhs[5]);
 
-
+	//mexPrintf("size:%d\n", (int)mxGetM(prhs[3]));
 	//mexPrintf("%f \n", Distance);
 	//mexPrintf("%d %d %d\n", t_length, s_length ,z_length);
 	/*mexPrintf("%f\n", R[9781670]);*/
@@ -26,6 +26,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[])
 
 	plhs[0] = mxCreateDoubleMatrix(LDisplay, 1, mxREAL);
 	double *Display = mxGetPr(plhs[0]);
+	//for debug{
+	/*float *Rcovcuda = new float[LR];
+	memset(Rcovcuda, 0, sizeof(float));*/
+
+	//plhs[0] = mxCreateDoubleMatrix(LR, 1, mxREAL);
+	//double *Rcov = mxGetPr(plhs[0]);
+	//}end debug
 
 	cudaError_t cudaStatus = FBPpara(Displaycuda, R, Tdomain, ThetaScanRange, LTheta,
 		LT, Size, t_length, s_length);
@@ -54,4 +61,5 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[])
 		return;
 	}
 	delete[] Displaycuda;
+	/*delete[] Rcovcuda;*/
 }

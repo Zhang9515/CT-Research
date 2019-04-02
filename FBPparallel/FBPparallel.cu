@@ -38,7 +38,7 @@ __global__ void Filter(float *dev_Rcov, float *dev_R, const float *dev_G, const 
 	dev_Rcov[thread_id] += TInt * Rcovsum;
 }
 
-__global__ void BackProjection(const float *dev_Rcov, float *dev_Display, const double *dev_Size, const int T_length, const int S_length, 
+__global__ void BackProjection(const float *dev_Rcov, float *dev_Display, const double *dev_Size, const int T_length, const int S_length,
 	const float Theta, const float *dev_Tdomain, const float TInt, const float ThetaScanInt, const float mint, 
 	const float maxt, const int thetaIndex, const int LT, const int LTheta, const int T_start, const int S_start)
 {
@@ -81,11 +81,11 @@ __global__ void BackProjection(const float *dev_Rcov, float *dev_Display, const 
 		t1 = fabs(t - t_domain1); t2 = fabs(t_domain2 - t);
 
 		//Display_pTheta = 1;
-		Display_pTheta = ( t2 * dev_Rcov[thetaIndex * LT + tN1index] + t1 * dev_Rcov[thetaIndex * LT + tN2index])
+		Display_pTheta = ( t2 * dev_Rcov[thetaIndex * LT + tN1index] + t1 * dev_Rcov[thetaIndex * LT + tN2index] )
 			/ TInt * ThetaScanInt;
 	}
 	thread_id = Sindex * T_length + Tindex;
-	dev_Display[thread_id] = Display_pTheta;
+	dev_Display[thread_id] += Display_pTheta;
 
 }
 
@@ -336,7 +336,7 @@ cudaError_t FBPpara(float *Display, const float *R, const float *Tdomain, const 
 				}
 				/*mexPrintf("gstart: %d\n", gstart);
 				mexPrintf("gend: %d\n", gend);*/
-				Filter << <block_cubic, thread_cubic >> > (dev_Rcov, dev_R, dev_G, TInt, LT, tstart, Thetastart, gstart, gend);
+				Filter << <block_cubic_residual, thread_cubic_residual >> > (dev_Rcov, dev_R, dev_G, TInt, LT, tstart, Thetastart, gstart, gend);
 				// Check for any errors launching the kernel
 				cudaStatus = cudaGetLastError();
 				if (cudaStatus != cudaSuccess) {
@@ -366,7 +366,7 @@ cudaError_t FBPpara(float *Display, const float *R, const float *Tdomain, const 
 				}
 				/*mexPrintf("gstart: %d\n", gstart);
 				mexPrintf("gend: %d\n", gend);*/
-				Filter << <block_cubic, thread_cubic >> > (dev_Rcov, dev_R, dev_G, TInt, LT, tstart, Thetastart, gstart, gend);
+				Filter << <block_cubic, thread_cubic_residual >> > (dev_Rcov, dev_R, dev_G, TInt, LT, tstart, Thetastart, gstart, gend);
 				// Check for any errors launching the kernel
 				cudaStatus = cudaGetLastError();
 				if (cudaStatus != cudaSuccess) {
@@ -399,7 +399,7 @@ cudaError_t FBPpara(float *Display, const float *R, const float *Tdomain, const 
 				}
 				/*mexPrintf("gstart: %d\n", gstart);
 				mexPrintf("gend: %d\n", gend);*/
-				Filter << <block_cubic, thread_cubic >> > (dev_Rcov, dev_R, dev_G, TInt, LT, tstart, Thetastart, gstart, gend);
+				Filter << <block_cubic_residual, thread_cubic >> > (dev_Rcov, dev_R, dev_G, TInt, LT, tstart, Thetastart, gstart, gend);
 				// Check for any errors launching the kernel
 				cudaStatus = cudaGetLastError();
 				if (cudaStatus != cudaSuccess) {
@@ -469,7 +469,7 @@ Error1:
 			for (int numS = 0; numS < S_Time; numS++)
 			{
 				S_start = numS * blockX;
-				BackProjection << <block_cubic_Bp, thread_cubic_Bp >> > (dev_Rcov, dev_Display, dev_Size, t_length, s_length,
+				BackProjection << <block_cubic_Bp, thread_cubic_Bp_residual >> > (dev_Rcov, dev_Display, dev_Size, t_length, s_length,
 					ThetaScanRange[thetaIndex], dev_Tdomain, TInt, ThetaScanInt, mint, maxt, thetaIndex, LT, LTheta, T_start, S_start);
 				// Check for any errors launching the kernel
 				cudaStatus = cudaGetLastError();
@@ -483,7 +483,7 @@ Error1:
 			if (SlengthResidual != 0)
 			{
 				S_start = s_length - SlengthResidual;
-				BackProjection << <block_cubic_Bp, thread_cubic_Bp >> > (dev_Rcov, dev_Display, dev_Size, t_length, s_length,
+				BackProjection << <block_cubic_Bp_residual, thread_cubic_Bp_residual >> > (dev_Rcov, dev_Display, dev_Size, t_length, s_length,
 					ThetaScanRange[thetaIndex], dev_Tdomain, TInt, ThetaScanInt, mint, maxt, thetaIndex, LT, LTheta, T_start, S_start);
 				// Check for any errors launching the kernel
 				cudaStatus = cudaGetLastError();
@@ -501,7 +501,7 @@ Error1:
 			for (int numT = 0; numT < T_Time; numT++)
 			{
 				T_start = numT * threadX;
-				BackProjection << <block_cubic_Bp, thread_cubic_Bp >> > (dev_Rcov, dev_Display, dev_Size, t_length, s_length,
+				BackProjection << <block_cubic_Bp_residual, thread_cubic_Bp >> > (dev_Rcov, dev_Display, dev_Size, t_length, s_length,
 					ThetaScanRange[thetaIndex], dev_Tdomain, TInt, ThetaScanInt, mint, maxt, thetaIndex, LT, LTheta, T_start, S_start);
 				// Check for any errors launching the kernel
 				cudaStatus = cudaGetLastError();
@@ -531,6 +531,14 @@ Error1:
 		mexPrintf("cudaMemcpy dev_Display failed! %s\n", cudaGetErrorString(cudaStatus));
 		goto Error;
 	}
+	//for debug{
+	//cudaStatus = cudaMemcpy(Rcov, dev_Rcov, LR * sizeof(float), cudaMemcpyDeviceToHost);
+	//if (cudaStatus != cudaSuccess) {
+	//	fprintf(stderr, "cudaMemcpy failed!\n");
+	//	mexPrintf("cudaMemcpy dev_Display failed! %s\n", cudaGetErrorString(cudaStatus));
+	//	goto Error;
+	//}
+	//}end debug
 
 Error:
 	cudaFree(dev_ThetaScanRange);
@@ -539,6 +547,6 @@ Error:
 	cudaFree(dev_Display);
 	cudaFree(dev_Size);
 
-	mexPrintf("Exit FDK\n");
+	mexPrintf("Exit FBP\n");
 	return cudaStatus;
 }

@@ -20,6 +20,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[])
 	//mexPrintf("%f \n", Distance);
 	//mexPrintf("%d %d %d\n", t_length, s_length ,z_length);
 	/*mexPrintf("%f\n", R[9781670]);*/
+	//mexPrintf("size:%d\n", (int)mxGetM(prhs[5]));
 
 	const long LDisplay = t_length * s_length * z_length;
 	const long LR = LBeta * LP * LXigama;

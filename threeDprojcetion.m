@@ -25,8 +25,8 @@ clear;
 Size = [ 60 , 60 , 60 ] ;     % actual range 60
 % pic = phantom3d ( 'Modified Shepp-Logan' , 65 ) ;     % original picture  
 % pic = Diskphantom ( 512 ) ;
-load('E:\ZXZ\Data\ThoraxHD.mat')
-pic = single( ThoraxHD ) ;
+load('E:\ZXZ\Data\ThoraxHD_661.mat')
+pic = single( ThoraxHD_661 ) ;
 % load ( ' D:\TestCpp\CT\Data\FDK\SFBPimage3.mat ' ) ;       % head ct data
 % pic = double ( SFBPimage ) ;
 % load ( ' D:\TestCpp\CT\Data\FDK\Chest256_160.mat ' ) ;       % chest ct data
@@ -87,7 +87,7 @@ R = zeros ( LP * LXigama * LBeta, 1 ) ;   % create space to store fan projection
 picvector = reshape (pic, t_length * s_length * z_length, 1);
 clear pic;
 R = ProjectionCone_3D (picvector, t_length, s_length, z_length, Size, BetaScanRange, Pdomain, Xigamadomain, Distance);
-% R = reshape ( R , LP , LXigama, LBeta ) ;
+R = reshape ( R , LP , LXigama, LBeta ) ;
 % figure,imshow3Dfull(R,[])
 
 % load('E:\ZXZ\Data\matlab.mat')
