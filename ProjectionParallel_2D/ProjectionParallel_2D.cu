@@ -2,7 +2,7 @@
 // 2018/04/09
 // 2019/03/24 edited by ZXZ
 __device__ const double PI = 3.141592653589793;
-__device__ const double EPS = 1e-15;
+__device__ const double EPS = 1e-10;
 
 __global__ void ProjectionParallel(const float *dev_Pic, double *dev_Projection, const float *dev_t_Range, const float *dev_thetaRange,
 	const double Center_y, const double Center_x, const double *dev_resolution, const int height, const int width, const int Lt, const int tstart, const int thetastart)
@@ -10,7 +10,8 @@ __global__ void ProjectionParallel(const float *dev_Pic, double *dev_Projection,
 	const int tindex = threadIdx.x + tstart;
 	const int thetaindex = blockIdx.x + thetastart;
 	//for debug{
-	//const int thetaindex = 89;
+	//const int tindex = 364;
+	//const int thetaindex = 2343;
 	//}
 	const int threadid = thetaindex * Lt + tindex;
 
@@ -27,8 +28,8 @@ __global__ void ProjectionParallel(const float *dev_Pic, double *dev_Projection,
 	double DetectPoint_xend = Center_x + t * cos(-theta) + Smax * sin(-theta);
 	double DetectPoint_yend = Center_y - t * sin(-theta) + Smax * cos(-theta);
 	
-	double X2Y = (DetectPoint_yend - DetectPoint_ystart) / (DetectPoint_xend - DetectPoint_xstart + EPS);
-	double Y2X = 1 / (X2Y + EPS);
+	/*double X2Y = (DetectPoint_yend - DetectPoint_ystart) / (DetectPoint_xend - DetectPoint_xstart + EPS);
+	double Y2X = 1 / (X2Y + EPS);*/
 
 	// to determine the range of y
 	int y_signal = 0;
@@ -51,10 +52,11 @@ __global__ void ProjectionParallel(const float *dev_Pic, double *dev_Projection,
 	double Xlow = 0, Xhigh = width*dev_resolution[1], Ylow = 0, Yhigh = height*dev_resolution[0];
 
 	//compute the first and last point in the ROI
-	double Ylow_x = DetectPoint_xstart + (Ylow - DetectPoint_ystart) * Y2X;
-	double Yhigh_x = DetectPoint_xstart + (Yhigh - DetectPoint_ystart) * Y2X;
-	double Xlow_y = DetectPoint_ystart + (Xlow - DetectPoint_xstart) * X2Y;
-	double Xhigh_y = DetectPoint_ystart + (Xhigh - DetectPoint_xstart) * X2Y;
+	double Ylow_x = DetectPoint_xstart + (Ylow - DetectPoint_ystart) * Y2X /*/ (tan(theta + PI / 2) + EPS)*/;
+	double Yhigh_x = DetectPoint_xstart + (Yhigh - DetectPoint_ystart) * Y2X /*/ (tan(theta + PI / 2) + EPS)*/;
+	
+	double Xlow_y = DetectPoint_ystart + (Xlow - DetectPoint_xstart) * X2Y /** tan(theta + PI / 2)*/;
+	double Xhigh_y = DetectPoint_ystart + (Xhigh - DetectPoint_xstart) * X2Y /** tan(theta + PI / 2)*/;
 	//double *Range = new double [4];   //  XYXY small-big(number)
 	double X1 = 0, Y1 = 0, X2 = 0, Y2 = 0;
 
@@ -154,7 +156,7 @@ __global__ void ProjectionParallel(const float *dev_Pic, double *dev_Projection,
 		{
 			GridX = floor(XCross) + flag1to1or_1to0(x_signal);
 		}
-		GridX_y = (DetectPoint_ystart + (GridX * dev_resolution[1] - DetectPoint_xstart) * tan(theta + PI / 2)) / dev_resolution[0];
+		GridX_y = (DetectPoint_ystart + (GridX * dev_resolution[1] - DetectPoint_xstart) * X2Y  /** tan(theta + PI / 2)) / dev_resolution[0]*/;
 
 		if (YCross - (double)((int)YCross) < EPS)
 		{
@@ -164,7 +166,7 @@ __global__ void ProjectionParallel(const float *dev_Pic, double *dev_Projection,
 		{
 			GridY = floor(YCross) + flag1to1or_1to0(y_signal);
 		}
-		GridY_x = (DetectPoint_xstart + (GridY * dev_resolution[0] - DetectPoint_ystart) / tan(theta + PI / 2)) / dev_resolution[1];
+		GridY_x = (DetectPoint_xstart + (GridY * dev_resolution[0] - DetectPoint_ystart) * Y2X /*/ (tan(theta + PI / 2) + EPS)) / dev_resolution[1]*/;
 
 		//judge which crosspoint is the nearest
 		if (Distancesq(GridX, GridX_y, XCross, YCross) >= Distancesq(GridY_x, GridY, XCross, YCross))
@@ -206,7 +208,7 @@ __global__ void ProjectionParallel(const float *dev_Pic, double *dev_Projection,
 
 	//__syncthreads();
 	//for debug{
-	//dev_Projection[threadid] = y_signal;
+	//dev_Projection[threadid] = Ray;
 	//}
 
 	dev_Projection[threadid] = Ray;

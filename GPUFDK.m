@@ -22,8 +22,8 @@
 tic 
 clear;
 
-% load('E:\ZXZ\Data\ThoraxHD.mat')
-load('G:\CTcode\Data\ThoraxHD_661.mat')
+load('E:\ZXZ\Data\ThoraxHD_661.mat')
+% load('G:\CTcode\Data\ThoraxHD_661.mat')
 pic = ThoraxHD_661 ;
 pic = single ( pic ) ;
 clear ThoraxHD

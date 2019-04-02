@@ -63,12 +63,11 @@ __global__ void BackProjection(const float *dev_Rcov, float *dev_Display, const 
 	unsigned long thread_id;
 
 	// this is a little different from code on MATLAB
-	image_t = (Tindex + 0.5) * Resolution_t - Center_t;    // image pixel in ground coordinate
+	image_t = (Tindex + 0.5) * Resolution_t - Center_t;    // center of the image pixel in ground coordinate
 	image_s = (Sindex + 0.5) * Resolution_s - Center_s;
 
-	dect_t = image_t * cos(Theta) + image_s * sin(Theta);   // rotate in ground coordinate
-
-	t = dect_t ;
+	t = image_t * cos(Theta) + image_s * sin(Theta);   // rotate in ground coordinate
+	//dect_t = -image_t * sin(Theta) + image_s * cos(Theta);   // rotate in ground coordinate
 	
 	if ((t >= mint) && (t < maxt))
 	{
