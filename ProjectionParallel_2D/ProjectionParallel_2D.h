@@ -23,10 +23,12 @@ using namespace std;
 #define ABS(x) (x>0?x:(-x))
 #define Distancesq(x1,y1,x2,y2) (pow2(x1-x2)+pow2(y1-y2))
 #define MID(x,y) ((x+y)/2)
-#define threadX 256
-#define blockX 256
+#define threadX 512
+#define blockX 512
+#define Maxlim(x) (x>10^16?10^16:x)
+#define Minlim(x) (x<-10^16?-10^16:x)
 
-cudaError_t ProjectionParallel_2D(const float *Pic, double *Projection, const float *thetaRange, const float *t_Range,
+cudaError_t ProjectionParallel_2D(const float *Pic, double *Projection, const double *thetaRange, const double *t_Range,
 	const int height, const int width, const double Center_y, const double Center_x, const int Ltheta, const int Lt,
 	const double *resolution);
 

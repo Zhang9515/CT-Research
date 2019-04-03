@@ -8,9 +8,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[])
 		const double *Size = mxGetPr(prhs[3]);
 		const double Center_y = Size[0]/2;    // vertical
 		const double Center_x = Size[1]/2;    // horizontal
-		const float *thetaRange = (float*)mxGetPr(prhs[4]);
+		const double *thetaRange = (double*)mxGetPr(prhs[4]);
 		const int Ltheta = mxGetM(prhs[4]);
-		const float *t_range = (float*)mxGetPr(prhs[5]);
+		const double *t_range = (double*)mxGetPr(prhs[5]);
 		const int Lt = mxGetM(prhs[5]);
 		const long LMat = Ltheta * Lt;
 

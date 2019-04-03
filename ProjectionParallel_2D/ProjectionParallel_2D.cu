@@ -2,9 +2,11 @@
 // 2018/04/09
 // 2019/03/24 edited by ZXZ
 __device__ const double PI = 3.141592653589793;
-__device__ const double EPS = 1e-10;
+__device__ const double EPS = 1e-30;
+__device__ const double ERR = 1e-5;
 
-__global__ void ProjectionParallel(const float *dev_Pic, double *dev_Projection, const float *dev_t_Range, const float *dev_thetaRange,
+
+__global__ void ProjectionParallel(const float *dev_Pic, double *dev_Projection, const double *dev_t_Range, const double *dev_thetaRange,
 	const double Center_y, const double Center_x, const double *dev_resolution, const int height, const int width, const int Lt, 
 	const int tstart, const int thetastart)
 {	
@@ -12,14 +14,14 @@ __global__ void ProjectionParallel(const float *dev_Pic, double *dev_Projection,
 	const short thetaindex = blockIdx.x + thetastart;
 	//for debug{
 	//const int tindex = 364;
-	//const int thetaindex = 2343;
+	//const int thetaindex = 644;
 	//}
 	const int threadid = thetaindex * Lt + tindex;
 
 	dev_Projection[threadid] = 0;
 
-	float t = dev_t_Range[tindex];
-	float theta = dev_thetaRange[thetaindex];
+	double t = dev_t_Range[tindex];
+	double theta = dev_thetaRange[thetaindex];
 	double Smax = MAX(fabs(dev_t_Range[0]), fabs(dev_t_Range[Lt-1]));
 
 	// according to euler equation
@@ -29,8 +31,19 @@ __global__ void ProjectionParallel(const float *dev_Pic, double *dev_Projection,
 	double DetectPoint_xend = Center_x + t * cos(-theta) + Smax * sin(-theta);
 	double DetectPoint_yend = Center_y - t * sin(-theta) + Smax * cos(-theta);
 	
-	double X2Y = (DetectPoint_yend - DetectPoint_ystart) / (DetectPoint_xend - DetectPoint_xstart + EPS);
-	double Y2X = 1 / (X2Y + EPS);
+	double X2Y, Y2X; 
+	if (DetectPoint_xend - DetectPoint_xstart == 0)
+		X2Y = (DetectPoint_yend - DetectPoint_ystart) / (DetectPoint_xend - DetectPoint_xstart + EPS);
+	else
+		X2Y = (DetectPoint_yend - DetectPoint_ystart) / (DetectPoint_xend - DetectPoint_xstart);
+	if (DetectPoint_yend - DetectPoint_ystart == 0)
+		Y2X = (DetectPoint_xend - DetectPoint_xstart) / (DetectPoint_yend - DetectPoint_ystart + EPS);
+	else
+		Y2X = (DetectPoint_xend - DetectPoint_xstart) / (DetectPoint_yend - DetectPoint_ystart);
+
+	// limit the range of slope
+	//X2Y = Maxlim(X2Y); X2Y = Minlim(X2Y);
+	//Y2X = Maxlim(Y2X); Y2X = Minlim(Y2X);
 
 	// to determine the range of y
 	short y_signal = 0;
@@ -139,43 +152,63 @@ __global__ void ProjectionParallel(const float *dev_Pic, double *dev_Projection,
 	double weight = 0, Ray = 0;
 	short GridX = 0, GridY = 0;        // candidate crosspoint index in matlab(0~256)
 	double GridY_x = 0, GridX_y = 0;    // candidate crosspoint index in matlab(0~256)
-	short DetectPoint_x = 0, DetectPoint_y = 0; // current pixel index in matlab pixel index in matlab(0~255)
+	short DetectPoint_x = 0, DetectPoint_y = 0; // current pixel index in matlab pixel index in matlab( 0 ~ (height/width) - 1 )
 	int	Pointid = 0;   
-	double XCross = XStart / dev_resolution[1], YCross = YStart / dev_resolution[0];     // current crosspoint index in matlab(0~256)
+	double XCross = XStart / dev_resolution[1], YCross = YStart / dev_resolution[0];     // current crosspoint index in matlab( 0 ~ (height/width) )
 
 	//while (((XCross * dev_resolution[1]) >= Range[0]) && ((XCross * dev_resolution[1]) <= Range[2]) 
 	//	&& ((YCross * dev_resolution[0]) >= Range[1]) && ((YCross * dev_resolution[0]) <= Range[3]))
-	for (short i = 0; i < (height + width - 1); i++)
+	short i;
+	/*XCross = 256; YCross = 256;*/
+	for (i = 0; i < (height + width - 1); i++)
 	{
 		//dev_Projection[threadid] = 10000;
 
 		// judge whether XCross/YCross is integer
-		if (XCross - (double)((short)XCross) < EPS)
+		if (abs(XCross - round(XCross)) < ERR)   // a relative robust operation
+		//if (XCross == floor(XCross)) using"==" leads to unpredictable mistake due to data precision of double
 		{
-			GridX = XCross + x_signal;			
+			GridX = round(XCross) + x_signal;	
+
 		}
 		else
 		{
 			GridX = floor(XCross) + flag1to1or_1to0(x_signal);
 		}
+		// for debug{
+			//if (i == (height + width - 2))
+			//{
+			//	dev_Projection[threadid] = XCross == floor(XCross);
+			//	break;
+			//}
+		//}end debugs
 		GridX_y = (DetectPoint_ystart + (GridX * dev_resolution[1] - DetectPoint_xstart) * X2Y  /** tan(theta + PI / 2)*/) / dev_resolution[0];
 
-		if (YCross - (double)((short)YCross) < EPS)
+		if (abs(YCross - round(YCross)) < ERR) // a relative robust operation
+		//if (YCross == floor(YCross) ) using"==" leads to unpredictable mistake due to data precision of double
 		{
-			GridY = YCross + y_signal;			
+			GridY = round(YCross) + y_signal;			
 		}
 		else
 		{
 			GridY = floor(YCross) + flag1to1or_1to0(y_signal);
 		}
+		
 		GridY_x = (DetectPoint_xstart + (GridY * dev_resolution[0] - DetectPoint_ystart) * Y2X /*/ (tan(theta + PI / 2) + EPS)*/) / dev_resolution[1];
-
+		// for debug{
+			/*if (i == (height + width - 2))
+			{
+				dev_Projection[threadid] = GridX;
+				break;
+			}*/
+		//}end debugs
 		//judge which crosspoint is the nearest
 		if (Distancesq(GridX, GridX_y, XCross, YCross) >= Distancesq(GridY_x, GridY, XCross, YCross))
 		{
 			weight = sqrt(Distancesq(GridY_x * dev_resolution[1], GridY * dev_resolution[0], XCross * dev_resolution[1], YCross * dev_resolution[0]));
 			DetectPoint_x = floor(MID(GridY_x, XCross));                 // the midpoint locates the pixel
 			DetectPoint_y = floor(MID(GridY, YCross));
+			
 			XCross = GridY_x;    // update
 			YCross = GridY;
 		}
@@ -184,6 +217,7 @@ __global__ void ProjectionParallel(const float *dev_Pic, double *dev_Projection,
 			weight = sqrt(Distancesq(GridX * dev_resolution[1], GridX_y * dev_resolution[0], XCross * dev_resolution[1], YCross * dev_resolution[0]));
 			DetectPoint_x = floor(MID(GridX, XCross));           
 			DetectPoint_y = floor(MID(GridX_y, YCross));
+			
 			XCross = GridX;   // update
 			YCross = GridX_y;
 		}
@@ -194,14 +228,14 @@ __global__ void ProjectionParallel(const float *dev_Pic, double *dev_Projection,
 			Pointid = DetectPoint_x * height + DetectPoint_y;
 			Ray += weight * dev_Pic[Pointid];
 			// for debug{
-			//dev_Projection[threadid] = 8000;
+				//dev_Projection[threadid] = 8000;
 			//break;
 			// }
 		}
 		else
 		{
 			// for debug{
-			//dev_Projection[threadid] = 9000;
+				//dev_Projection[threadid] = 9000;
 			//}
 			break;
 		}
@@ -210,19 +244,20 @@ __global__ void ProjectionParallel(const float *dev_Pic, double *dev_Projection,
 
 	//__syncthreads();
 	//for debug{
-	//dev_Projection[threadid] = Ray;
+		//dev_Projection[threadid] = GridX /*- GridY*/ ;
 	//}
 
 	dev_Projection[threadid] = Ray;
 }
 
 // Helper function for using CUDA to add vectors in parallel.
-cudaError_t ProjectionParallel_2D(const float *Pic, double *Projection, const float *thetaRange, const float *t_Range,
+cudaError_t ProjectionParallel_2D(const float *Pic, double *Projection, const double *thetaRange, const double *t_Range,
 	const int height, const int width, const double Center_y, const double Center_x, const int Ltheta, const int Lt,
 	const double *resolution)
 {
 	mexPrintf("Hello GenMatParalell!\n");
-	float *dev_Pic = 0, * dev_thetaRange = 0, *dev_t_Range = 0 ;
+	float *dev_Pic = 0;
+	double *dev_thetaRange = 0, *dev_t_Range = 0 ;
 	double *dev_Projection = 0, *dev_resolution = 0;
 
 	int threadcubic_x = MIN(threadX, Lt);
@@ -277,14 +312,14 @@ cudaError_t ProjectionParallel_2D(const float *Pic, double *Projection, const fl
         goto Error;
     }
 
-    cudaStatus = cudaMalloc((void**)&dev_thetaRange, Ltheta * sizeof(float));
+    cudaStatus = cudaMalloc((void**)&dev_thetaRange, Ltheta * sizeof(double));
     if (cudaStatus != cudaSuccess) {
         fprintf(stderr, "dev_thetaRange cudaMalloc failed!");
 		mexPrintf("dev_thetaRange cudaMalloc failed!\n");
         goto Error;
     }
 
-    cudaStatus = cudaMalloc((void**)&dev_t_Range, Lt * sizeof(float));
+    cudaStatus = cudaMalloc((void**)&dev_t_Range, Lt * sizeof(double));
     if (cudaStatus != cudaSuccess) {
         fprintf(stderr, "dev_t_Range cudaMalloc failed!");
 		mexPrintf("dev_t_Range cudaMalloc failed!\n");
@@ -308,14 +343,14 @@ cudaError_t ProjectionParallel_2D(const float *Pic, double *Projection, const fl
         goto Error;
     }
 
-    cudaStatus = cudaMemcpy(dev_thetaRange, thetaRange, Ltheta * sizeof(float), cudaMemcpyHostToDevice);
+    cudaStatus = cudaMemcpy(dev_thetaRange, thetaRange, Ltheta * sizeof(double), cudaMemcpyHostToDevice);
     if (cudaStatus != cudaSuccess) {
         fprintf(stderr, "thetaRange cudaMemcpy failed!");
 		mexPrintf("thetaRange cudaMemcpy failed!\n");
         goto Error;
     }
 
-    cudaStatus = cudaMemcpy(dev_t_Range, t_Range, Lt * sizeof(float), cudaMemcpyHostToDevice);
+    cudaStatus = cudaMemcpy(dev_t_Range, t_Range, Lt * sizeof(double), cudaMemcpyHostToDevice);
     if (cudaStatus != cudaSuccess) {
         fprintf(stderr, "t_Range cudaMemcpy failed!");
 		mexPrintf("t_Range cudaMemcpy failed!\n");
