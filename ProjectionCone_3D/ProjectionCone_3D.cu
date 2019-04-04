@@ -3,6 +3,7 @@
 // 2018/04/16
 //__device__ const double PI = 3.141592653589793;
 __device__ const double EPS = 1e-15;
+__device__ const double ERR = 1e-5;
 
 __global__ void ProjectionCone(const float *dev_Pic, float *dev_Projection, const float *dev_Pdomain, const float *dev_Xigamadomain,
 	const double Center_t, const double Center_s, const double Center_z, const double *dev_resolution,
@@ -40,9 +41,47 @@ __global__ void ProjectionCone(const float *dev_Pic, float *dev_Projection, cons
 	double DetectPoint_send = Center_s + Smax * sin(Theta) * sin(Beta) + (Distance - Smax * cos(Theta) * cos(Gama)) * cos(Beta);
 	double DetectPoint_zend = Center_z + Smax * cos(Theta) * sin(Gama);
 
-	double T2S = (DetectPoint_send - source_s) / (DetectPoint_tend - source_t + EPS); double S2T = 1 / (T2S + EPS);
-	double T2Z = (DetectPoint_zend - source_z) / (DetectPoint_tend - source_t + EPS); double Z2T = 1 / (T2Z + EPS);
-	double S2Z = T2Z / (T2S + EPS); double Z2S = T2S / (T2Z + EPS);
+	double T2S, S2T, T2Z, Z2T, S2Z, Z2S;
+	if ((DetectPoint_tend - source_t) == 0)
+	{
+		T2S = (DetectPoint_send - source_s) / (DetectPoint_tend - source_t + EPS);
+		T2Z = (DetectPoint_zend - source_z) / (DetectPoint_tend - source_t + EPS);
+	}
+	else
+	{
+		T2S = (DetectPoint_send - source_s) / (DetectPoint_tend - source_t);
+		T2Z = (DetectPoint_zend - source_z) / (DetectPoint_tend - source_t);
+	}
+		
+	if ((DetectPoint_send - source_s) == 0)
+	{
+		S2T = (DetectPoint_tend - source_t) / (DetectPoint_send - source_s + EPS);
+		S2Z = (DetectPoint_zend - source_z) / (DetectPoint_send - source_s + EPS);
+	}	
+	else
+	{
+		S2T = (DetectPoint_tend - source_t) / (DetectPoint_send - source_s);
+		S2Z = (DetectPoint_zend - source_z) / (DetectPoint_send - source_s);
+	}
+		
+	if ((DetectPoint_zend - source_z) == 0)
+	{
+		Z2T = (DetectPoint_tend - source_t) / (DetectPoint_zend - source_z + EPS);
+		Z2S = (DetectPoint_send - source_s) / (DetectPoint_zend - source_z + EPS);
+	}		
+	else
+	{
+		Z2T = (DetectPoint_tend - source_t) / (DetectPoint_zend - source_z);
+		Z2S = (DetectPoint_send - source_s) / (DetectPoint_zend - source_z);
+	}
+
+	// limit the range of slope
+	T2S = Maxlim(T2S); T2S = Minlim(T2S);
+	T2Z = Maxlim(T2Z); T2Z = Minlim(T2Z);
+	S2T = Maxlim(S2T); S2T = Minlim(S2T);
+	S2Z = Maxlim(S2Z); S2Z = Minlim(S2Z);
+	Z2T = Maxlim(Z2T); Z2T = Minlim(Z2T);
+	Z2S = Maxlim(Z2S); Z2S = Minlim(Z2S);
 
 	// to determine the range of t
 	short t_signal = 0;

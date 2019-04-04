@@ -42,8 +42,8 @@ __global__ void ProjectionParallel(const float *dev_Pic, double *dev_Projection,
 		Y2X = (DetectPoint_xend - DetectPoint_xstart) / (DetectPoint_yend - DetectPoint_ystart);
 
 	// limit the range of slope
-	//X2Y = Maxlim(X2Y); X2Y = Minlim(X2Y);
-	//Y2X = Maxlim(Y2X); Y2X = Minlim(Y2X);
+	X2Y = Maxlim(X2Y); X2Y = Minlim(X2Y);
+	Y2X = Maxlim(Y2X); Y2X = Minlim(Y2X);
 
 	// to determine the range of y
 	short y_signal = 0;
@@ -244,7 +244,9 @@ __global__ void ProjectionParallel(const float *dev_Pic, double *dev_Projection,
 
 	//__syncthreads();
 	//for debug{
-		//dev_Projection[threadid] = GridX /*- GridY*/ ;
+		//double a = 1e+17;
+		////int b = 4;
+		//dev_Projection[threadid] = Maxlim(a);
 	//}
 
 	dev_Projection[threadid] = Ray;

@@ -7,12 +7,14 @@
 #include <math.h>
 #include <string.h>
 #include <stdlib.h>
+// if local environment variable has been set, there is no need to give the complete including path 
 // lab computer
-#include "G:\CUDA\Development\include\cuda_runtime.h"
-#include "G:\CUDA\Development\include\device_launch_parameters.h"
+//#include "G:\CUDA\Development\include\cuda_runtime.h"
+//#include "G:\CUDA\Development\include\device_launch_parameters.h"
 // server2(maybe has changed)
-//#include "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.0\include\cuda_runtime.h"
-//#include "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.0\include\device_launch_parameters.h"
+/*C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.0\include\*/
+#include "cuda_runtime.h"
+#include "device_launch_parameters.h"
 using namespace std;
 #define MAX(x,y) (x>y?x:y)
 #define MIN(x,y) (x<y?x:y)
@@ -24,6 +26,8 @@ using namespace std;
 #define threadX 256
 #define blockX 256
 #define Filterlengthlimit 900
+#define Maxlim(x) (x>1e+16?1e+16:x)
+#define Minlim(x) (x<-1e+16?-1e+16:x)
 
 cudaError_t ProjectionCone_3D(const float *Pic, float *Projection, const float *BetaScanRange, const float *Pdomain,
 	const float *Xigamadomain, const int t_length, const int s_length, const int z_length, const double Center_t,

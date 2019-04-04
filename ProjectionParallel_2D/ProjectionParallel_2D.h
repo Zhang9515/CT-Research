@@ -7,12 +7,14 @@
 #include <math.h>
 #include <string.h>
 #include <stdlib.h>
+// if local environment variable has been set, there is no need to give the complete including path 
 // lab computer
 //#include "G:\CUDA\Development\include\cuda_runtime.h"
 //#include "G:\CUDA\Development\include\device_launch_parameters.h"
 // server2(maybe has changed)
-#include "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.0\include\cuda_runtime.h"
-#include "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.0\include\device_launch_parameters.h"
+/*C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.0\include\*/
+#include "cuda_runtime.h"
+#include "device_launch_parameters.h"
 using namespace std;
 
 #define MAX(x,y) (x>y?x:y)
@@ -25,8 +27,8 @@ using namespace std;
 #define MID(x,y) ((x+y)/2)
 #define threadX 512
 #define blockX 512
-#define Maxlim(x) (x>10^16?10^16:x)
-#define Minlim(x) (x<-10^16?-10^16:x)
+#define Maxlim(x) (x>1e+16?1e+16:x)
+#define Minlim(x) (x<-1e+16?-1e+16:x)
 
 cudaError_t ProjectionParallel_2D(const float *Pic, double *Projection, const double *thetaRange, const double *t_Range,
 	const int height, const int width, const double Center_y, const double Center_x, const int Ltheta, const int Lt,

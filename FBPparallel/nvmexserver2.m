@@ -42,7 +42,7 @@ machine_str PIC_Option ...
 ' -I' CUDA_INC_Location ' -I' CUDA_SAMPLES_Location ...  
 ' "' cuFileName '" '   
  ];  
-mexCommandLine = ['mex ' '-g ' cppfilename '.cpp ' cufilename  '.o'  ' -L' CUDA_LIB_Location  ' -lcudart'];  
+mexCommandLine = ['mex ' '-g ' cppfilename '.cpp ' cufilename  '.o'  ' -L' CUDA_LIB_Location  ' -I' CUDA_INC_Location ' -lcudart'];  
 disp(nvccCommandLine);  
 warning off;  
 status = system(nvccCommandLine);  
