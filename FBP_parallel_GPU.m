@@ -8,7 +8,10 @@ tic
 % parameter define
 
 % pic = single(StandardPhantom ( 'modified shepp-logan' , 512 ) );
-load 'E:\ZXZ\Data\trial2D'
+% server2 path
+% load 'E:\ZXZ\Data\trial2D'
+% lab computer path
+load 'G:\CTcode\Data\trial2D'
 pic = single(trial2D) ; 
 
 Size = [ 60 , 60 ] ;                                  % actual range
