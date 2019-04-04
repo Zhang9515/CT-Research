@@ -1,6 +1,6 @@
 #pragma once
 #pragma once
-// 2018/04/09 apply GPU acceleration
+// 2019/03/28 apply GPU acceleration
 #ifndef __FBPPARALLEL_H__
 #define __FBPPARALLEL_H__
 #include <mex.h>

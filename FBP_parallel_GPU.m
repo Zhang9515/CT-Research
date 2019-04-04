@@ -47,11 +47,11 @@ R = reshape( R , Lt , Ltheta ) ;
     % R1 = reshape( R1 ,  Lt * Ltheta ,1 ) ; 
 
 
-% Display = FBPparallel( single(R) , single(thetaRange') , single(t_range') , Size , height ,width ) ;
-% % Display = reshape( Display , Lt , Ltheta ) ;
-% Display = reshape( Display , height , width ) ;
-% % Display = Display' ;
-% figure,imshow(flipud(Display) , [0 0.5])
+Display = FBPparallel( single(R) , single(thetaRange') , single(t_range') , Size , height ,width ) ;
+% Display = reshape( Display , Lt , Ltheta ) ;
+Display = reshape( Display , height , width ) ;
+% Display = Display' ;
+figure,imshow(flipud(Display) , [0 0.5])
           
 % %%   display
 % 

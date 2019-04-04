@@ -1,5 +1,5 @@
 #include "FBPparallel.h"
-// 2018/04/09 apply GPU accelerationd
+// 2019/03/28 apply GPU accelerationd
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[])
 {
 
