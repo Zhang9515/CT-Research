@@ -9,9 +9,9 @@ tic
 
 % pic = single(StandardPhantom ( 'modified shepp-logan' , 512 ) );
 % server2 path
-% load 'E:\ZXZ\Data\trial2D'
+load 'E:\ZXZ\Data\trial2D'
 % lab computer path
-load 'G:\CTcode\Data\trial2D'
+% load 'G:\CTcode\Data\trial2D'
 pic = single(trial2D) ; 
 
 Size = [ 60 , 60 ] ;                                  % actual range
@@ -25,11 +25,11 @@ Rpic = 0.5 * sqrt ( 2 ) * Size ( 1 ) ;
 % t_int = 0.05 ;
 % t_range =  -tmax : t_int : tmax ;
 tmax = 364 ; 
-t_int = 0.5 ;
+t_int = 1 ;
 t_range =  (-tmax : t_int : tmax) * Resolution ;
 Lt = length ( t_range ) ;
 
-thetaint = deg2rad(0.2) ;     % theta unit 
+thetaint = deg2rad(0.5) ;     % theta unit 
 Maxtheta = deg2rad(360) ;      
 thetaRange = thetaint : thetaint : Maxtheta ;                                % radon scanning range, radian
 Ltheta = length ( thetaRange ) ; 
@@ -50,8 +50,8 @@ R = reshape( R , Lt , Ltheta ) ;
 Display = FBPparallel( single(R) , single(thetaRange') , single(t_range') , Size , height ,width ) ;
 % Display = reshape( Display , Lt , Ltheta ) ;
 Display = reshape( Display , height , width ) ;
-% Display = Display' ;
-figure,imshow(flipud(Display) , [0 0.5])
+Display = Display' ;
+figure,imshow( Display , [0 0.5])
           
 % %%   display
 % 
