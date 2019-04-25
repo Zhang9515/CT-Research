@@ -1,4 +1,4 @@
-function y=displayPatch(w)
+function y=displayPatch(w,window)
 [n,Patchnum]=size(w);
 psize=sqrt(n);
 Patline=ceil(sqrt(Patchnum));
@@ -10,4 +10,4 @@ for i=1:Patchnum
    %z=(z-min(z(:)))/(max(z(:))-min(z(:)));
     y(row+1:row+psize,column+1:column+psize)=z;
 end
-figure;imshow(y,[]);
+figure;imshow(y,window);
