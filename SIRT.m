@@ -4,15 +4,20 @@ tic
 clear all;
 % close all;
 %%
+% lab computer
+load 'G:\CTcode\Data\trial2D'
+
 % parameter define
-thetaint = 1 ;                                                                 % theta unit 
-thetaRange = thetaint : thetaint : 180 ;                                % radon scanning range
+thetaint = 5 ;                                                                 % theta unit 
+Maxtheta = 360 ;
+thetaRange = thetaint : thetaint : Maxtheta ;                                % radon scanning range
 Ltheta = length ( thetaRange ) ; 
 
 % pic = phantom ( 257 ) ;
-pic = dicomread ( 'ActualCTImage.dcm');
-winL = 0 ;    winH = 4095 ;           %  set window width
-pic = winL + double ( pic ) / ( winH - winL ) ;        
+% pic = dicomread ( 'ActualCTImage.dcm');
+% winL = 0 ;    winH = 4095 ;           %  set window width
+% pic = winL + double ( pic ) / ( winH - winL ) ;        
+pic = trial2D ; 
 
 Size = [ 60 , 60 ] ;                                  % actual range
 
@@ -22,7 +27,7 @@ Center_y = Size ( 1 ) / 2 ;  Center_x = Size ( 1 ) / 2 ;      % define the cente
 Rpic = 0.5 * sqrt ( 2 ) * Size ( 1 ) ; 
 
 tmax = round ( Rpic * 1.1 ) ;
-t_int = 0.2 ;
+t_int = 0.1 ;
 t_range =  -tmax : t_int : tmax ;
 Lt = length ( t_range ) ;
 
@@ -37,12 +42,13 @@ R = zeros ( Lt ,  Ltheta ) ;   % create space to store fan projection
 SysMatrix = GenSysMatParal ( height , width , Size , Center_x , Center_y , thetaRange , t_range ) ;
 picvector = reshape ( flipud( pic )' , height * width , 1  ) ;  % original image
 R = SysMatrix * picvector ;        % generate projection with system matrix
-Norm = sum ( R ) ;
+Norm = norm ( R ) ;
+Norm_pic = norm ( picvector ) ;
 % load A.mat
 % SysMatrix = A ; 
 %% iterative
 % S.Kaczmarz Method
-
+EPS = 1e-10 ;
 Times = 1000 ;
 IterativeTime = 1  ;      % times to iterative
 Lamda = 1 ;                       % relaxtion factor  SIRT
@@ -57,13 +63,13 @@ figure  % hold residual graph
 while ( IterativeTime <= Times && Residual ( IterativeTime ) > 1e-6 )            % end condition of loop
 %              disp ( IterativeTime ) ;
              Err = R - SysMatrix * Display ;
-             Display = Display + Lamda * SysMatrix' * ( Err ./ ( sum( SysMatrix , 2 ) + 1e-9 ) ) ./ ( sum ( SysMatrix ) + 1e-9 )' ; 
+             Display = Display + Lamda * SysMatrix' * ( Err ./ ( sum( SysMatrix , 2 ) + EPS ) ) ./ ( sum ( SysMatrix ) + EPS )' ; 
              Display ( Display < 0 ) = 0 ;       % non-negation constraint
 %     Dismean = mean ( Display ) ;
-    ME ( IterativeTime ) = sum ( abs ( Display - picvector ) ) /  ( Norm * height * width ) ;      % compute error
+    ME ( IterativeTime ) = norm ( Display - picvector ) /  ( Norm * height * width ) ;      % compute error
     IterativeTime = IterativeTime + 1 ;
     
-    Residual ( IterativeTime ) = sum ( abs ( R - SysMatrix * Display ) ) / ( Norm * height * width ) ;        % used as stop condition
+    Residual ( IterativeTime ) = norm ( R - SysMatrix * Display ) / ( Norm * height * width ) ;        % used as stop condition
     plot ( 2 : IterativeTime , Residual ( 2  : IterativeTime ) ) ;
     ylim ( [ 0 , ( 10 * Residual ( IterativeTime ) ) ] ) ;
     drawnow ; 
