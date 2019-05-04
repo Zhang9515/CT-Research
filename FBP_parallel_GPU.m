@@ -38,19 +38,19 @@ R = zeros ( Lt ,  Ltheta ) ;   % create space to store fan projection
 
 %% GPU accelerated Siddon projection
 
-picvector = single( reshape (pic, height * width , 1) ) ;
+picvector = Img2vec_Mat2Cpp2D ( pic ) ;
 % t_range = single(t_range') ; thetaRange = single( thetaRange' ) ;
 R = ProjectionParallel_2D( picvector , height , width , Size , thetaRange' , t_range' ) ;     % store parallel beam projection
-R = reshape( R , Lt , Ltheta ) ;
+
+% R = reshape( R , Lt , Ltheta ) ;
 % figure,imshow(R,[])
     % R1 = radon(trial2D,rad2deg(thetaRange)) * Resolution ;
     % R1 = reshape( R1 ,  Lt * Ltheta ,1 ) ; 
 
-
 Display = FBPparallel( single(R) , single(thetaRange') , single(t_range') , Size , height ,width ) ;
+
 % Display = reshape( Display , Lt , Ltheta ) ;
-Display = reshape( Display , height , width ) ;
-Display = Display' ;
+Display = Vec2img_Cpp2Mat2D( Display , height , width ) ;
 figure,imshow( Display , [0 0.5])
           
 % %%   display

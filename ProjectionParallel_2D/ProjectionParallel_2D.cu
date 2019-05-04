@@ -225,7 +225,7 @@ __global__ void ProjectionParallel(const float *dev_Pic, double *dev_Projection,
 		//judge whether the point is in the ROI
 		if ((DetectPoint_x >= 0) && (DetectPoint_x < width) && (DetectPoint_y >= 0) && (DetectPoint_y < height ))
 		{
-			Pointid = DetectPoint_x * height + DetectPoint_y;
+			Pointid = DetectPoint_y * width + DetectPoint_x;
 			Ray += weight * dev_Pic[Pointid];
 			// for debug{
 				//dev_Projection[threadid] = 8000;

@@ -5,20 +5,23 @@ clear all;
 % close all;
 %%
 % lab computer
-load 'G:\CTcode\Data\trial2D'
+% load 'G:\CTcode\Data\trial2D'
+% server2 path
+load 'E:\ZXZ\Data\trial2D'
 
 % parameter define
-thetaint = 5 ;                                                                 % theta unit 
-Maxtheta = 360 ;
+thetaint = deg2rad(5) ;                                                                 % theta unit 
+Maxtheta = deg2rad(360) ;
 thetaRange = thetaint : thetaint : Maxtheta ;                                % radon scanning range
 Ltheta = length ( thetaRange ) ; 
 
 % pic = phantom ( 257 ) ;
 % pic = dicomread ( 'ActualCTImage.dcm');
 % winL = 0 ;    winH = 4095 ;           %  set window width
-% pic = winL + double ( pic ) / ( winH - winL ) ;        
-pic = trial2D ; 
+% pic = winL + double ( pic ) / ( winH - winL ) ;    
 
+% pic = trial2D ; 
+pic = phantom(512) ;
 Size = [ 60 , 60 ] ;                                  % actual range
 
 [ height , width ] = size ( pic ) ;              % store the size of picture
@@ -39,17 +42,26 @@ R = zeros ( Lt ,  Ltheta ) ;   % create space to store fan projection
 
 %% compute system matrix
 
-SysMatrix = GenSysMatParal ( height , width , Size , Center_x , Center_y , thetaRange , t_range ) ;
-picvector = reshape ( flipud( pic )' , height * width , 1  ) ;  % original image
-R = SysMatrix * picvector ;        % generate projection with system matrix
-Norm = norm ( R ) ;
-Norm_pic = norm ( picvector ) ;
-% load A.mat
-% SysMatrix = A ; 
+% SysMatrix = GenSysMatParal ( height , width , Size , Center_x , Center_y , thetaRange , t_range ) ;
+% picvector = reshape ( fliplr( pic' ) , height * width , 1  ) ;  % original image
+% R = SysMatrix * picvector ;        % generate projection with system matrix
+% R = reshape( R , Lt , Ltheta ) ;
+% figure,imshow(R,[])
+% Norm = norm ( R ) ;
+% Norm_pic = norm ( picvector ) ;
+% % load A.mat
+% % SysMatrix = A ; 
+%% GPU-based projection 
+picvector = reshape ( fliplr( pic' ) , height * width , 1  ) ;  
+R2 = ProjectionParallel_2D( single(picvector) , height , width , Size ,thetaRange' , t_range' ) ;     % store parallel beam projection
+R2 = reshape( R2 , Lt , Ltheta ) ;
+figure,imshow(R2,[])
+
 %% iterative
 % S.Kaczmarz Method
 EPS = 1e-10 ;
-Times = 1000 ;
+Threshold = 1e-9 ;
+Times = 100 ;
 IterativeTime = 1  ;      % times to iterative
 Lamda = 1 ;                       % relaxtion factor  SIRT
 Display = zeros ( height * width , 1 ) ;          % store the reconstruction
@@ -60,16 +72,21 @@ ME = zeros( 1 ,  Times ) ;                                       % judgement par
 Residual = zeros ( Times ) ;  Residual ( 1 ) = sum ( abs ( R - SysMatrix * Display ) ) ;      % used as stop condition
 figure  % hold residual graph
 
-while ( IterativeTime <= Times && Residual ( IterativeTime ) > 1e-6 )            % end condition of loop
+while ( IterativeTime <= Times && Residual ( IterativeTime ) > Threshold )            % end condition of loop
 %              disp ( IterativeTime ) ;
              Err = R - SysMatrix * Display ;
              Display = Display + Lamda * SysMatrix' * ( Err ./ ( sum( SysMatrix , 2 ) + EPS ) ) ./ ( sum ( SysMatrix ) + EPS )' ; 
+             
              Display ( Display < 0 ) = 0 ;       % non-negation constraint
 %     Dismean = mean ( Display ) ;
-    ME ( IterativeTime ) = norm ( Display - picvector ) /  ( Norm * height * width ) ;      % compute error
+%     ME ( IterativeTime ) = norm ( Display - picvector ) /  ( Norm_pic * height * width ) ;      % compute error
     IterativeTime = IterativeTime + 1 ;
     
     Residual ( IterativeTime ) = norm ( R - SysMatrix * Display ) / ( Norm * height * width ) ;        % used as stop condition
+    
+%     Rmed = ProjectionParallel_2D( single(Display) , height , width , Size , deg2rad(thetaRange') , t_range' ) ;
+%     Residual ( IterativeTime ) = norm ( R - Rmed ) / ( Norm * height * width ) ;  
+    
     plot ( 2 : IterativeTime , Residual ( 2  : IterativeTime ) ) ;
     ylim ( [ 0 , ( 10 * Residual ( IterativeTime ) ) ] ) ;
     drawnow ; 
