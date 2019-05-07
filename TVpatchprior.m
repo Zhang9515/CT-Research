@@ -1,7 +1,7 @@
 % 19/05/05 by ZXZ
 %TV based iterative algorithm with patch prior
 tic
-clear all;
+clear;
 % close all;
 %%
 % lab computer
@@ -16,7 +16,7 @@ thetaRange = thetaint : thetaint : Maxtheta ;                                % r
 Ltheta = length ( thetaRange ) ; 
 
 % pic = trial2D ; 
-pic = phantom(512) ;
+pic = phantom(256) ;
 Size = [ 60 , 60 ] ;                                  % actual range
 
 [ height , width ] = size ( pic ) ;              % store the size of picture
@@ -32,18 +32,19 @@ Lt = length ( t_range ) ;
 R = zeros ( Lt ,  Ltheta ) ;   % create space to store fan projection
 %% compute system matrix
 
-SysMatrix = GenSysMatParal ( height , width , Size , Center_x , Center_y , thetaRange , t_range ) ;
+% SysMatrix = GenSysMatParal ( height , width , Size , Center_x , Center_y , thetaRange , t_range ) ;
+load SysMatrix
 picvector = Img2vec_Mat2Cpp2D( pic ) ;  % original image
-R = SysMatrix * double(picvector) ;        % generate projection with system matrix
+% R = SysMatrix * double(picvector) ;        % generate projection with system matrix
 % R = reshape( R , Lt , Ltheta ) ;
 % figure,imshow(R,[])
-Norm = norm ( R ) ;
+% Norm = norm ( R ) ;
 Norm_pic = norm ( picvector ) ;
 % % load A.mat
 % % SysMatrix = A ; 
 %% GPU-based projection 
 % picvector = Img2vec_Mat2Cpp2D( pic ) ;
-% R2 = ProjectionParallel_2D( picvector , height , width , Size ,thetaRange' , t_range' ) ;     % store parallel beam projection
+R = ProjectionParallel_2D( picvector , height , width , Size ,thetaRange' , t_range' ) ;     % store parallel beam projection
 % R2 = reshape( R2 , Lt , Ltheta ) ;
 % figure,imshow(R2,[])
 
@@ -53,49 +54,52 @@ EPS = 1e-10 ;
 Threshold = 1e-6 ;
 Times = 100 ;
 IterativeTime = 1  ;      % times to iterative
-Lamda = 1 ;                       % relaxtion factor for split bregman
-miu = 1 ;        % regularization parameter for TV
+miu = 0.01 ;        % regularization parameter for TV
+lamda = 2 * miu ;                       % relaxtion factor for split bregman( 2*miu is recommended by the classical paper)
 Display = zeros ( height * width , 1 ) ;          % store the reconstruction
 LDisplay = size ( Display ) ;
 ME = zeros( 1 ,  Times ) ;                                       % judgement parameter
-ME(1) = norm ( Display - picvector ) /  ( Norm_pic ) ;   % used as stop condition
+
 % Err = R - ProjectionParallel_2D( single(Display) , height , width , Size ,thetaRange' , t_range' ) ;
 % Err = R - SysMatrix * Display ;
 % Residual = zeros ( Times ) ;  Residual ( 1 ) = norm ( Err ) / ( Norm ) ;      % used as stop condition
 figure  % hold residual graph
 
-d = zeros(LDisplay); dy = zeros(LDisplay); bx = zeros(LDisplay); by =zeros(LDisplay);
-Display0 = FBPparallel( single(R) , single(thetaRange') , single(t_range') , Size , height ,width ) ;
+dx = zeros(LDisplay); dy = zeros(LDisplay); bx = zeros(LDisplay); by =zeros(LDisplay);
+Display_previous = FBPparallel( single(R) , single(thetaRange') , single(t_range') , Size , height ,width ) ;
+ME(1) = norm ( Display_previous - picvector ) /  ( Norm_pic ) ;   % used as stop condition
 
 gradientMatrix_x = gradient2Dmatrix_x(height,width);
 gradientMatrix_y = gradient2Dmatrix_y(height,width);
 % preparation for CG
 divergence_matrix = divergenceMatrix2D(height,width);
-A_CG = miu * (SysMatrix') * SysMatrix + Lamda * divergence_matrix ;
 b1_CG = miu * (SysMatrix') * R ; 
-reorth = 0 ; s = 0 ;        % regularization parameter to make the equation stable
 iter_CG = 5 ;
 
 while ( IterativeTime <= Times && ME ( IterativeTime ) > Threshold )            % end condition of loop
-%              disp ( IterativeTime ) ;
-            
+                      
              b_CG = b1_CG + lamda * ( gradientMatrix_x * ( dx - bx ) + gradientMatrix_y * ( dy - by ) ) ;
-             [X,rho,eta,F] = cgls(A_CG, b_CG , iter_CG , reorth , s ) ; 
-             Display = X(: , end) ;
+             
+             Display = cgls4TV ( SysMatrix, divergence_matrix , b_CG , iter_CG , miu , lamda, Display_previous) ;
+            
              Display ( Display < 0 ) = 0 ;       % non-negation constraint
              
-             dx = soft_threshold( gradientMatrix_x * Display + bx , 1/lamda);
+             dx = soft_threshold( gradientMatrix_x * Display + bx , 1/lamda);         % split bregman update
              dy = soft_threshold( gradientMatrix_y * Display + by , 1/lamda);
              bx = bx + dx - gradientMatrix_x * Display ; 
              by = by + dy - gradientMatrix_y * Display ; 
-
-    ME ( IterativeTime ) = norm ( Display - picvector ) /  ( Norm_pic ) ;      % compute error
-    IterativeTime = IterativeTime + 1 ;
-
-    plot ( 2 : IterativeTime , ME ( 2  : IterativeTime ) ) ;
-    ylim ( [ 0 , ( 10 * ME ( IterativeTime ) ) ] ) ;
-    drawnow ; 
-    
+             
+             IterativeTime = IterativeTime + 1 ;
+             ME ( IterativeTime ) = norm ( Display - picvector ) /  ( Norm_pic ) ;      % compute error
+             local_e = norm(Display - Display_previous,2) ;
+             disp ( ['IterativeTime: ', num2str(IterativeTime), '; ME: ', num2str(ME ( IterativeTime )),'; local_e: ', num2str(local_e)]) ;
+%     plot ( 2 : IterativeTime , ME ( 2  : IterativeTime ) ) ;
+%     ylim ( [ 0 , ( 10 * ME ( IterativeTime ) ) ] ) ;
+%     drawnow ;           
+            Display_med = Vec2img_Cpp2Mat2D( Display , height , width ) ;
+            imshow ( Display_med , [ 0  0.5 ] ) ;                     % display results
+            drawnow;
+            Display_previous = Display ;
 end
 
 Display = Vec2img_Cpp2Mat2D( Display , height , width ) ;

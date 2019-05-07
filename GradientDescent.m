@@ -78,7 +78,7 @@ while ( times <= Stop )
             r_previous = r_next ; 
     end
     AG = SysMatrix * d ; 
-    alpha = ( r_previous' * r_previous ) / ( AG' * AG ) ;
+    alpha = ( d' * r_previous ) / ( AG' * AG ) ;
     Display = Display + alpha * d ;
     if ( mod ( times , 10 ) == 1 )
         r_next = SysMatrix' * ( R - SysMatrix * Display ) ;
