@@ -5,7 +5,7 @@ tic
 %% image input
 % server2 path
 load 'E:\ZXZ\Data\trial2D'
-load 'E:\ZXZ\Data\trial2D_prior'
+load 'E:\ZXZ\Data\trial2D_prior_360'
 load 'E:\ZXZ\Data\trial2D_angle5'
 % lab computer
 % load 'G:\CTcode\Data\trial2D'
@@ -50,19 +50,19 @@ pic = single(HighQ_image) ;
 % % figure,imshow( Display , [0 0.5])
 
 %% patch operation
-
 imgsize = size( pic ) ;
-patchsize = [5 , 5] ; 
+patchsize = [10 , 10] ; 
 slidestep = [3 , 3] ;
 patchset_LowQ = ExtractPatch2D ( LowQ_image , patchsize , slidestep, 'NoRemoveDC' ) ;    % extract the patches from the low quality image which need to be improved, store here to compute the DC later
-patchset_HighQ = ExtractPatch2D ( HighQ_image , patchsize , slidestep, 'NoRemoveDC' ) ;    % extract the patches from the high quality image as the atoms of the dictionary, which should be normalized later
+patchset_HighQ = ExtractPatch2D ( HighQ_image , patchsize , slidestep, 'RemoveDC' ) ;    % extract the patches from the high quality image as the atoms of the dictionary, which should be normalized later
 
 sparsity = 5 ; 
 Dictionary = col_normalization( patchset_HighQ ) ;    % Dictionary, of which each atom has been normalized 
-Xintm = ExtractPatch2D ( LowQ_image, patchsize, slidestep, 'NoRemoveDC' ) ;    % Xintm is set of patches which extracted from the low quality image
+Xintm = ExtractPatch2D ( LowQ_image, patchsize, slidestep, 'RemoveDC' ) ;    % Xintm is set of patches which extracted from the low quality image
 Alpha = omp( Dictionary , Xintm , Dictionary' * Dictionary , sparsity ) ;     % use OMP to fit Xintm
-Image2D = PatchSynthesis ( Dictionary * Alpha, patchset_LowQ, patchsize, slidestep, imgsize, 'NoAddDC' ) ;    % fuse all patches
-figure,imshow(Image2D,[0 0.5])
+Image2D = PatchSynthesis ( Dictionary * Alpha, patchset_LowQ, patchsize, slidestep, imgsize, 'AddDC' ) ;    % fuse all patches
+
+% figure,imshow(Image2D,[0 0.5])
 
 rmseOri = RMSE ( LowQ_image , pic ) ;
 rmseDict = RMSE ( Image2D , pic ) ;
