@@ -9,6 +9,7 @@ clear;
 % server2 path
 load ..\Data\trial2D
 load ..\Data\trial2D_prior_360
+save_path = '..\Data\miu200_lamda0.001_p5s3sp5\' ;
 % load 'E:\ZXZ\Data\trial2D_angle5'
 % display parameter
 displaywindow = [0 0.5] ;
@@ -96,7 +97,7 @@ patchset_HighQ = ExtractPatch2D ( HighQ_image , patchsize , slidestep, 'NoRemove
 Dictionary = col_normalization( patchset_HighQ ) ;    % Dictionary, of which each atom has been normalized 
 
 % max outloop
-outeriter = 10 ;
+outeriter = 20 ;
 rmse = zeros( innerTimes , outeriter ) ;                                       % judgement parameter
 for outerloop = 1 : outeriter
     disp(['outerloop : ' , num2str(outerloop),'/',num2str(outeriter)])
@@ -141,12 +142,16 @@ for outerloop = 1 : outeriter
 
                 Display_previous = Display ;
     end
-    save ..
+
     Display_previous = Vec2img_Cpp2Mat2D( Display_previous , height , width ) ;
     imshow ( Display_previous , displaywindow ) ;                     % display results
     drawnow;
     clear dx dy bx by;
+    save_path_pic = strcat(save_path,num2str(outerloop)) ;
+    save( save_path_pic, 'Display_previous') ;
 end
+save_path_rmse = strcat(save_path_pic , 'rmse') ;
+save( save_path_rmse , 'rmse' );
 % figure , imshow ( Display_previous , displaywindow ) ;                     % display results
 
 % figure, plot ( 1 : Times , MSE( 1  : Times ) ) ;                          % display error graph
