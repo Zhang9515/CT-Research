@@ -7,8 +7,8 @@ clear;
 % lab computer
 % load 'G:\CTcode\Data\trial2D'
 % server2 path
-load 'E:\ZXZ\Data\trial2D'
-load 'E:\ZXZ\Data\trial2D_prior_360'
+load ..\Data\trial2D
+load ..\Data\trial2D_prior_360
 % load 'E:\ZXZ\Data\trial2D_angle5'
 % display parameter
 displaywindow = [0 0.5] ;
@@ -41,7 +41,7 @@ R = zeros ( Lt ,  Ltheta ) ;   % create space to store fan projection
 load SysMatrix
 picvector = Img2vec_Mat2Cpp2D( pic ) ;  % original image
 clear pic
-% R = SysMatrix * double(picvector) ;        % generate projection with system matrix
+R = SysMatrix * double(picvector) ;        % generate projection with system matrix
 % R = reshape( R , Lt , Ltheta ) ;
 % figure,imshow(R,[])
 % Norm = norm ( R ) ;
@@ -50,7 +50,7 @@ clear pic
 % % SysMatrix = A ; 
 %% GPU-based projection 
 % picvector = Img2vec_Mat2Cpp2D( pic ) ;
-R = ProjectionParallel_2D( picvector , height , width , Size ,thetaRange' , t_range' ) ;     % store parallel beam projection
+% R = ProjectionParallel_2D( picvector , height , width , Size ,thetaRange' , t_range' ) ;     % store parallel beam projection
 % R2 = reshape( R2 , Lt , Ltheta ) ;
 % figure,imshow(R2,[])
 
@@ -58,7 +58,7 @@ R = ProjectionParallel_2D( picvector , height , width , Size ,thetaRange' , t_ra
 % S.Kaczmarz Method
 EPS = 1e-10 ;
 Threshold = 1e-6 ;
-innerTimes = 2 ;
+innerTimes = 10 ;
 MaxLim = 1 ; MinLim = 0 ;    % value limit
 miu = 200 ;        % regularization parameter for TV
 lamda = 0.001 * miu ;                       % relaxtion factor for split bregman( 2*miu is recommended by the classical paper)
@@ -69,8 +69,8 @@ LDisplay = numel ( Display ) ;
 % Err = R - SysMatrix * Display ;
 % Residual = zeros ( Times ) ;  Residual ( 1 ) = norm ( Err ) / ( Norm ) ;      % used as stop condition
 figure  % hold residual graph
-
-Display_previous = FBPparallel( single(R) , single(thetaRange') , single(t_range') , Size , height ,width ) ;
+load ..\Data\Display_previous
+% Display_previous = FBPparallel( single(R) , single(thetaRange') , single(t_range') , Size , height ,width ) ;
 
 Display_previous = Vec2img_Cpp2Mat2D( Display_previous , height , width ) ;
 imshow ( Display_previous , displaywindow ) ;                     % display results
@@ -96,7 +96,7 @@ patchset_HighQ = ExtractPatch2D ( HighQ_image , patchsize , slidestep, 'NoRemove
 Dictionary = col_normalization( patchset_HighQ ) ;    % Dictionary, of which each atom has been normalized 
 
 % max outloop
-outeriter = 11 ;
+outeriter = 10 ;
 rmse = zeros( innerTimes , outeriter ) ;                                       % judgement parameter
 for outerloop = 1 : outeriter
     disp(['outerloop : ' , num2str(outerloop),'/',num2str(outeriter)])
@@ -131,7 +131,7 @@ for outerloop = 1 : outeriter
                  by = by + dy - gradientMatrix_y * Display ; 
 
                  IterativeTime = IterativeTime + 1 ;
-                 rmse ( IterativeTime ,outerloop) = RMSE ( Display , Display_previous) ;      % compute error
+                 rmse ( IterativeTime ,outerloop) = RMSE ( Display , picvector) ;      % compute error
                  local_e = LocalError( Display , Display_previous ) ;
                  loss = norm(gradientMatrix_x * Display,1) + norm(gradientMatrix_y * Display,1) + miu * norm(SysMatrix * Display - R ,2) / 2 ;     % objective function
                  disp ( ['IterativeTime: ', num2str(IterativeTime), ';   |    RMSE: ', num2str(rmse ( IterativeTime ,outerloop)),';   |    local_e: ', num2str(local_e), ';   |    Loss: ', num2str(loss)]) ;
@@ -141,7 +141,7 @@ for outerloop = 1 : outeriter
 
                 Display_previous = Display ;
     end
-    
+    save ..
     Display_previous = Vec2img_Cpp2Mat2D( Display_previous , height , width ) ;
     imshow ( Display_previous , displaywindow ) ;                     % display results
     drawnow;
