@@ -9,7 +9,7 @@ clear;
 % server2 path
 load ..\Data\trial2D
 load ..\Data\trial2D_prior_360
-save_path = '..\Data\miu200_lamda0.001_p5s3sp5\' ;
+save_path = '..\Data\miu200_lamda0.001_p4s3sp5\' ;
 % load 'E:\ZXZ\Data\trial2D_angle5'
 % display parameter
 displaywindow = [0 0.5] ;
@@ -86,7 +86,7 @@ b1_CG = miu * (SysMatrix') * R ;
 iter_CG = 15 ;
 
 % patch operation parameter
-patchsize = [5 , 5] ; 
+patchsize = [4 , 4] ; 
 slidestep = [3 , 3] ;
 sparsity = 5 ; 
 % construct dictionary, because here image patches are directly used as
@@ -99,6 +99,7 @@ Dictionary = col_normalization( patchset_HighQ ) ;    % Dictionary, of which eac
 % max outloop
 outeriter = 20 ;
 rmse = zeros( innerTimes , outeriter ) ;                                       % judgement parameter
+PSNR = zeros( innerTimes , outeriter ) ;
 for outerloop = 1 : outeriter
     disp(['outerloop : ' , num2str(outerloop),'/',num2str(outeriter)])
     %% patch operation
@@ -114,9 +115,10 @@ for outerloop = 1 : outeriter
     % initial of inner SB iterative
     dx = gradientMatrix_x * Display_previous ; dy = gradientMatrix_y * Display_previous ; bx = zeros(LDisplay,1); by =zeros(LDisplay,1);   
     rmse(1,outerloop) = RMSE( Display_previous , picvector ) ;   % used as stop condition
+    PSNR(1,outerloop) = psnr( Display_previous , picvector , 1) ;
     local_e = LocalError( Display_previous , Display ) ;     % initial
     IterativeTime = 1  ;      % times to iterative
-    disp ( ['IterativeTime: ', num2str(IterativeTime), ';   |    rmse: ', num2str(rmse ( IterativeTime , outerloop))]) ;
+    disp ( ['IterativeTime: ', num2str(IterativeTime), ';   |    rmse: ', num2str(rmse ( IterativeTime , outerloop)) , ';   |    psnr: ', num2str(PSNR ( IterativeTime , outerloop)) ]) ;
     %% split bregman to solve tv-based problem
     while ( IterativeTime <= innerTimes && local_e > Threshold )            % end condition of loop
 
@@ -133,9 +135,10 @@ for outerloop = 1 : outeriter
 
                  IterativeTime = IterativeTime + 1 ;
                  rmse ( IterativeTime ,outerloop) = RMSE ( Display , picvector) ;      % compute error
+                 PSNR( IterativeTime ,outerloop) = psnr ( Display , picvector , 1) ; 
                  local_e = LocalError( Display , Display_previous ) ;
                  loss = norm(gradientMatrix_x * Display,1) + norm(gradientMatrix_y * Display,1) + miu * norm(SysMatrix * Display - R ,2) / 2 ;     % objective function
-                 disp ( ['IterativeTime: ', num2str(IterativeTime), ';   |    RMSE: ', num2str(rmse ( IterativeTime ,outerloop)),';   |    local_e: ', num2str(local_e), ';   |    Loss: ', num2str(loss)]) ;
+                 disp ( ['IterativeTime: ', num2str(IterativeTime), ';   |    RMSE: ', num2str(rmse ( IterativeTime ,outerloop)), ';   |    psnr: ', num2str(PSNR ( IterativeTime , outerloop)), ';   |    local_e: ', num2str(local_e), ';   |    Loss: ', num2str(loss)]) ;
     %     plot ( 2 : IterativeTime , rmse ( 2  : IterativeTime ) ) ;
     %     ylim ( [ 0 , ( 10 * rmse ( IterativeTime ) ) ] ) ;
     %     drawnow ;           
@@ -150,8 +153,10 @@ for outerloop = 1 : outeriter
     save_path_pic = strcat(save_path,num2str(outerloop)) ;
     save( save_path_pic, 'Display_previous') ;
 end
-save_path_rmse = strcat(save_path_pic , 'rmse') ;
+save_path_rmse = strcat(save_path , 'rmse') ;
 save( save_path_rmse , 'rmse' );
+save_path_psnr = strcat(save_path , 'PSNR') ;
+save( save_path_psnr , 'PSNR' );
 % figure , imshow ( Display_previous , displaywindow ) ;                     % display results
 
 % figure, plot ( 1 : Times , MSE( 1  : Times ) ) ;                          % display error graph
