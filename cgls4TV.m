@@ -14,7 +14,7 @@ function img = cgls4TV ( SysMatrix, divergence, b_CG , iter_CG , miu , lamda, im
     residual = b_CG - matrixMultiply( SysMatrix , divergence , miu , lamda , img_previous ) ; 
     r0 = matrixMultiply( SysMatrix , divergence , miu , lamda , residual ) ;   % initial residual for conjugated gradient algorithm ( CG )
     d0 = r0 ;              % initial search direction for conjugated gradient algorithm ( CG )
-    local_e = LocalError( img_previous , zeros(size(SysMatrix,2),1) ) ;
+    local_e = 100 ;   % initial
     
     while ( times <= iter_CG && local_e >= threshold )
   

@@ -119,21 +119,20 @@ for outerloop = 1 : outeriter
     dx1 = zeros(LDisplay,1); dy1 = zeros(LDisplay,1); bx1 = zeros(LDisplay,1); by1 =zeros(LDisplay,1);   
     dx2 = gradientMatrix_x * (-Display_prior) ; dy2 = gradientMatrix_y * (-Display_prior) ; bx2 = zeros(LDisplay,1); by2 =zeros(LDisplay,1);   
     
-    rmse(1,outerloop) = RMSE( Display_previous , picvector ) ;   % used as stop condition
-    PSNR(1,outerloop) = psnr( Display_previous , picvector , 1) ;
-    local_e = LocalError( Display_previous , Display ) ;     % initial
+    local_e = 100 ;     % initial
     IterativeTime = 1  ;      % times to iterative
     disp ( ['IterativeTime: ', num2str(IterativeTime), ';   |    rmse: ', num2str(rmse ( IterativeTime , outerloop)) , ';   |    psnr: ', num2str(PSNR ( IterativeTime , outerloop)) ]) ;
     %% split bregman to solve tv-based problem
     while ( IterativeTime <= innerTimes && local_e > Threshold )            % end condition of loop
-                 Substract_Display = Display - Display_prior ;
+                 Display_previous = Display ;
                  b_CG = b1_CG + lamda1 * ( gradientMatrix_x * ( dx1 - bx1 ) + gradientMatrix_y * ( dy1 - by1 ) ) ... 
                  + lamda2 * ( gradientMatrix_x * ( dx2 + gradientMatrix_x * Display_prior - bx2 ) + gradientMatrix_y * ( dy2 + gradientMatrix_y * Display_prior - by2 ) ) ;
 
                  Display = cgls4TV ( SysMatrix, divergence_matrix , b_CG , iter_CG , miu , lamda1 + lamda2 , Display_previous) ;
 
                  Display ( Display < MinLim ) = MinLim ;       Display ( Display > MaxLim ) = MaxLim ;   % non-negation constraint
-
+                 
+                 Substract_Display = Display - Display_prior ;
                  dx1 = soft_threshold( gradientMatrix_x * Display + bx1 , alpha/lamda1);         % split bregman update
                  dy1 = soft_threshold( gradientMatrix_y * Display + by1 , alpha/lamda1);
                  dx2 = soft_threshold( gradientMatrix_x * Substract_Display + bx2 , (1-alpha)/lamda2);         % split bregman update
@@ -142,8 +141,7 @@ for outerloop = 1 : outeriter
                  by1 = by1 + dy1 - gradientMatrix_y * Display ; 
                  bx2 = bx2 + dx2 - gradientMatrix_x * Substract_Display ; 
                  by2 = by2 + dy2 - gradientMatrix_y * Substract_Display ; 
-
-                 IterativeTime = IterativeTime + 1 ;
+               
                  rmse ( IterativeTime ,outerloop) = RMSE ( Display , picvector) ;      % compute error
                  PSNR( IterativeTime ,outerloop) = psnr ( Display , picvector , 1) ; 
                  local_e = LocalError( Display , Display_previous ) ;
@@ -153,15 +151,15 @@ for outerloop = 1 : outeriter
     %     ylim ( [ 0 , ( 10 * rmse ( IterativeTime ) ) ] ) ;
     %     drawnow ;           
 
-                Display_previous = Display ;
+                IterativeTime = IterativeTime + 1 ;
     end
 
-    Display_previous = Vec2img_Cpp2Mat2D( Display_previous , height , width ) ;
-    imshow ( Display_previous , displaywindow ) ;                     % display results
+    Display = Vec2img_Cpp2Mat2D( Display , height , width ) ;
+    imshow ( Display , displaywindow ) ;                     % display results
     drawnow;
     clear dx dy bx by;
     save_path_pic = strcat(save_path,num2str(outerloop)) ;
-    save( save_path_pic, 'Display_previous') ;
+    save( save_path_pic, 'Display') ;
 end
 save_path_rmse = strcat(save_path , 'rmse') ;
 save( save_path_rmse , 'rmse' );
