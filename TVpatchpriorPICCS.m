@@ -143,7 +143,7 @@ for outerloop = 1 : outeriter
                  by2 = by2 + dy2 - gradientMatrix_y * Substract_Display ; 
                
                  rmse ( IterativeTime ,outerloop) = RMSE ( Display , picvector) ;      % compute error
-                 PSNR( IterativeTime ,outerloop) = psnr ( Display , picvector , 1) ; 
+                 PSNR( IterativeTime ,outerloop) = psnr ( Display , double(picvector) , 1) ; 
                  local_e = LocalError( Display , Display_previous ) ;
                  loss = norm(gradientMatrix_x * Display,1) + norm(gradientMatrix_y * Display,1) + miu * norm(SysMatrix * Display - R ,2) / 2 ;     % objective function
                  disp ( ['IterativeTime: ', num2str(IterativeTime), ';   |    RMSE: ', num2str(rmse ( IterativeTime ,outerloop)), ';   |    psnr: ', num2str(PSNR ( IterativeTime , outerloop)), ';   |    local_e: ', num2str(local_e), ';   |    Loss: ', num2str(loss)]) ;
