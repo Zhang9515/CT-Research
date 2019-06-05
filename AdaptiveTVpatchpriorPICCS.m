@@ -141,10 +141,10 @@ for outerloop = 1 : outeriter
                  dy1 = soft_threshold( gradientMatrix_y * Display + by1 , alpha/lamda1);
                  dx2 = soft_threshold( gradientMatrix_x * Substract_Display + bx2 , (1-alpha)/lamda2);         % split bregman update
                  dy2 = soft_threshold( gradientMatrix_y * Substract_Display + by2 , (1-alpha)/lamda2);
-                 bx1 = bx1 + dx1 - gradientMatrix_x * Display ; 
-                 by1 = by1 + dy1 - gradientMatrix_y * Display ; 
-                 bx2 = bx2 + dx2 - gradientMatrix_x * Substract_Display ; 
-                 by2 = by2 + dy2 - gradientMatrix_y * Substract_Display ; 
+                 bx1 = bx1 - dx1 + gradientMatrix_x * Display ; 
+                 by1 = by1 - dy1 + gradientMatrix_y * Display ; 
+                 bx2 = bx2 - dx2 + gradientMatrix_x * Substract_Display ; 
+                 by2 = by2 - dy2 + gradientMatrix_y * Substract_Display ; 
                
                  rmse ( IterativeTime ,outerloop) = RMSE ( Display , picvector) ;      % compute error
                  PSNR( IterativeTime ,outerloop) = psnr ( Display , double(picvector) , 1) ; 

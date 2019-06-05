@@ -115,7 +115,7 @@ for outerloop = 1 : outeriter
     % initial of inner SB iterative
     dx = gradientMatrix_x * Display_previous ; dy = gradientMatrix_y * Display_previous ; bx = zeros(LDisplay,1); by =zeros(LDisplay,1);   
     rmse(1,outerloop) = RMSE( Display_previous , picvector ) ;   % used as stop condition
-    PSNR(1,outerloop) = psnr( Display_previous , picvector , 1) ;
+    PSNR(1,outerloop) = psnr( Display_previous , double(picvector) , 1) ;
     local_e = LocalError( Display_previous , Display ) ;     % initial
     IterativeTime = 1  ;      % times to iterative
     disp ( ['IterativeTime: ', num2str(IterativeTime), ';   |    rmse: ', num2str(rmse ( IterativeTime , outerloop)) , ';   |    psnr: ', num2str(PSNR ( IterativeTime , outerloop)) ]) ;
@@ -130,12 +130,12 @@ for outerloop = 1 : outeriter
 
                  dx = soft_threshold( gradientMatrix_x * Display + bx , 1/lamda);         % split bregman update
                  dy = soft_threshold( gradientMatrix_y * Display + by , 1/lamda);
-                 bx = bx + dx - gradientMatrix_x * Display ; 
-                 by = by + dy - gradientMatrix_y * Display ; 
+                 bx = bx - dx + gradientMatrix_x * Display ; 
+                 by = by - dy + gradientMatrix_y * Display ; 
 
                  IterativeTime = IterativeTime + 1 ;
                  rmse ( IterativeTime ,outerloop) = RMSE ( Display , picvector) ;      % compute error
-                 PSNR( IterativeTime ,outerloop) = psnr ( Display , picvector , 1) ; 
+                 PSNR( IterativeTime ,outerloop) = psnr ( Display , double(picvector) , 1) ; 
                  local_e = LocalError( Display , Display_previous ) ;
                  loss = norm(gradientMatrix_x * Display,1) + norm(gradientMatrix_y * Display,1) + miu * norm(SysMatrix * Display - R ,2) / 2 ;     % objective function
                  disp ( ['IterativeTime: ', num2str(IterativeTime), ';   |    RMSE: ', num2str(rmse ( IterativeTime ,outerloop)), ';   |    psnr: ', num2str(PSNR ( IterativeTime , outerloop)), ';   |    local_e: ', num2str(local_e), ';   |    Loss: ', num2str(loss)]) ;
