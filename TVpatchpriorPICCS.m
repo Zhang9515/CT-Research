@@ -10,7 +10,7 @@ clear;
 % server2 path
 load ..\Data\trial2D
 load ..\Data\trial2D_prior_360
-save_path = '..\Data\miu200_lamda0.001_p4s3sp5\' ;
+save_path = '..\Data\PICCS_miu200_lamda0.001_p4s3sp5_CGzero_init\' ;
 % load 'E:\ZXZ\Data\trial2D_angle5'
 % display parameter
 displaywindow = [0 0.5] ;
@@ -86,9 +86,10 @@ gradientMatrix_y = gradient2Dmatrix_y(height,width);
 divergence_matrix = divergenceMatrix2D(height,width);
 b1_CG = miu * (SysMatrix') * R ; 
 iter_CG = 15 ;
+img_init = zeros(LDisplay,1) ; 
 
 % patch operation parameter
-patchsize = [5 , 5] ; 
+patchsize = [4 , 4] ; 
 slidestep = [3 , 3] ;
 sparsity = 5 ; 
 % construct dictionary, because here image patches are directly used as
@@ -97,7 +98,7 @@ HighQ_image = trial2D_prior_360 ;
 clear trial2D_prior_360
 patchset_HighQ = ExtractPatch2D ( HighQ_image , patchsize , slidestep, 'NoRemoveDC' ) ;    % extract the patches from the high quality image as the atoms of the dictionary, which should be normalized later
 Dictionary = col_normalization( patchset_HighQ ) ;    % Dictionary, of which each atom has been normalized 
-
+ 
 % max outloop
 outeriter = 20 ;
 rmse = zeros( innerTimes , outeriter ) ;                                       % judgement parameter
@@ -105,7 +106,7 @@ PSNR = zeros( innerTimes , outeriter ) ;
 for outerloop = 1 : outeriter
     disp(['outerloop : ' , num2str(outerloop),'/',num2str(outeriter)])
     %% patch operation
-    Display = zeros( LDisplay ,1) ;
+    Display = double ( Img2vec_Mat2Cpp2D( Display_previous ) ) ;      % set the result of last iterate as the initiate value of current iterate
     patchset_LowQ = ExtractPatch2D ( Display_previous , patchsize , slidestep, 'NoRemoveDC' ) ;    % extract the patches from the low quality image which need to be improved, store here to compute the DC later
        
     Xintm = ExtractPatch2D ( Display_previous, patchsize, slidestep, 'NoRemoveDC' ) ;    % Xintm is set of patches which extracted from the low quality image
@@ -121,14 +122,14 @@ for outerloop = 1 : outeriter
     
     local_e = 100 ;     % initial
     IterativeTime = 1  ;      % times to iterative
-    disp ( ['IterativeTime: ', num2str(IterativeTime), ';   |    rmse: ', num2str(rmse ( IterativeTime , outerloop)) , ';   |    psnr: ', num2str(PSNR ( IterativeTime , outerloop)) ]) ;
     %% split bregman to solve tv-based problem
     while ( IterativeTime <= innerTimes && local_e > Threshold )            % end condition of loop
                  Display_previous = Display ;
                  b_CG = b1_CG + lamda1 * ( gradientMatrix_x * ( dx1 - bx1 ) + gradientMatrix_y * ( dy1 - by1 ) ) ... 
                  + lamda2 * ( gradientMatrix_x * ( dx2 + gradientMatrix_x * Display_prior - bx2 ) + gradientMatrix_y * ( dy2 + gradientMatrix_y * Display_prior - by2 ) ) ;
-
-                 Display = cgls4TV ( SysMatrix, divergence_matrix , b_CG , iter_CG , miu , lamda1 + lamda2 , Display_previous) ;
+                  
+                 iter_CG = 100 ;
+                 Display = cgls4TV ( SysMatrix, divergence_matrix , b_CG , iter_CG , miu , lamda1 + lamda2 , img_init) ;        % here are two choices: 1. using the previous result; 2. using zero initialization
 
                  Display ( Display < MinLim ) = MinLim ;       Display ( Display > MaxLim ) = MaxLim ;   % non-negation constraint
                  
@@ -137,15 +138,17 @@ for outerloop = 1 : outeriter
                  dy1 = soft_threshold( gradientMatrix_y * Display + by1 , alpha/lamda1);
                  dx2 = soft_threshold( gradientMatrix_x * Substract_Display + bx2 , (1-alpha)/lamda2);         % split bregman update
                  dy2 = soft_threshold( gradientMatrix_y * Substract_Display + by2 , (1-alpha)/lamda2);
-                 bx1 = bx1 + dx1 - gradientMatrix_x * Display ; 
-                 by1 = by1 + dy1 - gradientMatrix_y * Display ; 
-                 bx2 = bx2 + dx2 - gradientMatrix_x * Substract_Display ; 
-                 by2 = by2 + dy2 - gradientMatrix_y * Substract_Display ; 
+                 bx1 = bx1 - dx1 + gradientMatrix_x * Display ; 
+                 by1 = by1 - dy1 + gradientMatrix_y * Display ; 
+                 bx2 = bx2 - dx2 + gradientMatrix_x * Substract_Display ; 
+                 by2 = by2 - dy2 + gradientMatrix_y * Substract_Display ; 
                
                  rmse ( IterativeTime ,outerloop) = RMSE ( Display , picvector) ;      % compute error
                  PSNR( IterativeTime ,outerloop) = psnr ( Display , double(picvector) , 1) ; 
                  local_e = LocalError( Display , Display_previous ) ;
-                 loss = norm(gradientMatrix_x * Display,1) + norm(gradientMatrix_y * Display,1) + miu * norm(SysMatrix * Display - R ,2) / 2 ;     % objective function
+                 % objective function ( which is different from the previous)
+                 loss = alpha * (norm(gradientMatrix_x * Display,1) + norm(gradientMatrix_y * Display,1)) + ( 1 - alpha ) * (norm(gradientMatrix_x * Substract_Display,1) + norm(gradientMatrix_y * Substract_Display,1))...
+                 + 0.5 * miu * norm(SysMatrix * Display - R ,2) ;     
                  disp ( ['IterativeTime: ', num2str(IterativeTime), ';   |    RMSE: ', num2str(rmse ( IterativeTime ,outerloop)), ';   |    psnr: ', num2str(PSNR ( IterativeTime , outerloop)), ';   |    local_e: ', num2str(local_e), ';   |    Loss: ', num2str(loss)]) ;
     %     plot ( 2 : IterativeTime , rmse ( 2  : IterativeTime ) ) ;
     %     ylim ( [ 0 , ( 10 * rmse ( IterativeTime ) ) ] ) ;
@@ -160,6 +163,7 @@ for outerloop = 1 : outeriter
     clear dx dy bx by;
     save_path_pic = strcat(save_path,num2str(outerloop)) ;
     save( save_path_pic, 'Display') ;
+    Display_previous = Display ;
 end
 save_path_rmse = strcat(save_path , 'rmse') ;
 save( save_path_rmse , 'rmse' );
