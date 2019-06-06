@@ -130,7 +130,7 @@ for outerloop = 1 : outeriter
                   
                  iter_CG = 100 ;
                  Display = cgls4TV ( SysMatrix, divergence_matrix , b_CG , iter_CG , miu , lamda1 + lamda2 , Display_previous) ;        % here are two choices: 1. using the previous result; 2. using zero initialization
-
+                 
                  Display ( Display < MinLim ) = MinLim ;       Display ( Display > MaxLim ) = MaxLim ;   % non-negation constraint
                  
                  Substract_Display = Display - Display_prior ;
