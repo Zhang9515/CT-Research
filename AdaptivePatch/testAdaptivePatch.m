@@ -38,9 +38,9 @@ Lt = length ( t_range ) ;
 
 R = zeros ( Lt ,  Ltheta ) ;   % create space to store fan projection
 %% compute system matrix
-load SysMatrix
+load ..\Data\SysMatrix
 picvector = Img2vec_Mat2Cpp2D( pic ) ;  % original image
-clear pic
+% clear pic
 R = SysMatrix * double(picvector) ;        % generate projection with system matrix
 
 %% iterative
@@ -60,7 +60,7 @@ Display_previous = Vec2img_Cpp2Mat2D( Display_previous , height , width ) ;
             
 % patch operation parameter
 Maxsize = 11 ;  % should be odd number
-patchsize_map = AdpativePatchSizeSelection( Display_previous , Maxsize) ;
+patchsize_map = AdpativePatchSizeSelection( pic , Maxsize) ;    % reference image for patch selection can be the fbp image or the truth image
 disp('patch selection complete')
 slidestep = [3 , 3] ;
 sparsity = 5 ; 
