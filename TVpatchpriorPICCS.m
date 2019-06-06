@@ -10,7 +10,7 @@ clear;
 % server2 path
 load ..\Data\trial2D
 load ..\Data\trial2D_prior_360
-save_path = '..\Data\PICCS_miu200_lamda0.001_p4s3sp5\' ;
+save_path = '..\Data\PICCS_miu200_lamda0.001_p4s3sp5_CGzero_init\' ;
 % load 'E:\ZXZ\Data\trial2D_angle5'
 % display parameter
 displaywindow = [0 0.5] ;
@@ -86,6 +86,7 @@ gradientMatrix_y = gradient2Dmatrix_y(height,width);
 divergence_matrix = divergenceMatrix2D(height,width);
 b1_CG = miu * (SysMatrix') * R ; 
 iter_CG = 15 ;
+img_init = zeros(LDisplay,1) ; 
 
 % patch operation parameter
 patchsize = [4 , 4] ; 
@@ -126,8 +127,9 @@ for outerloop = 1 : outeriter
                  Display_previous = Display ;
                  b_CG = b1_CG + lamda1 * ( gradientMatrix_x * ( dx1 - bx1 ) + gradientMatrix_y * ( dy1 - by1 ) ) ... 
                  + lamda2 * ( gradientMatrix_x * ( dx2 + gradientMatrix_x * Display_prior - bx2 ) + gradientMatrix_y * ( dy2 + gradientMatrix_y * Display_prior - by2 ) ) ;
-
-                 Display = cgls4TV ( SysMatrix, divergence_matrix , b_CG , iter_CG , miu , lamda1 + lamda2 , Display_previous) ;
+                  
+                 iter_CG = 100 ;
+                 Display = cgls4TV ( SysMatrix, divergence_matrix , b_CG , iter_CG , miu , lamda1 + lamda2 , img_init) ;        % here are two choices: 1. using the previous result; 2. using zero initialization
 
                  Display ( Display < MinLim ) = MinLim ;       Display ( Display > MaxLim ) = MaxLim ;   % non-negation constraint
                  
@@ -144,7 +146,9 @@ for outerloop = 1 : outeriter
                  rmse ( IterativeTime ,outerloop) = RMSE ( Display , picvector) ;      % compute error
                  PSNR( IterativeTime ,outerloop) = psnr ( Display , double(picvector) , 1) ; 
                  local_e = LocalError( Display , Display_previous ) ;
-                 loss = norm(gradientMatrix_x * Display,1) + norm(gradientMatrix_y * Display,1) + miu * norm(SysMatrix * Display - R ,2) / 2 ;     % objective function
+                 % objective function ( which is different from the previous)
+                 loss = alpha * (norm(gradientMatrix_x * Display,1) + norm(gradientMatrix_y * Display,1)) + ( 1 - alpha ) * (norm(gradientMatrix_x * Substract_Display,1) + norm(gradientMatrix_y * Substract_Display,1))...
+                 + 0.5 * miu * norm(SysMatrix * Display - R ,2) ;     
                  disp ( ['IterativeTime: ', num2str(IterativeTime), ';   |    RMSE: ', num2str(rmse ( IterativeTime ,outerloop)), ';   |    psnr: ', num2str(PSNR ( IterativeTime , outerloop)), ';   |    local_e: ', num2str(local_e), ';   |    Loss: ', num2str(loss)]) ;
     %     plot ( 2 : IterativeTime , rmse ( 2  : IterativeTime ) ) ;
     %     ylim ( [ 0 , ( 10 * rmse ( IterativeTime ) ) ] ) ;
