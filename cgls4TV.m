@@ -1,20 +1,18 @@
 function img = cgls4TV ( SysMatrix, divergence, b_CG , iter_CG , miu , lamda, img_previous)
-    
-%     img_previous = zeros(size(SysMatrix,2),1) ;     % initialization with
-%     previous result
-%     
-%     
+% using previous result to compute the search direction      
 %     
     % because the parameter matrix is miu*A'*A + lamda*(gx'*gx+gy'*gy), so
     % it is symetric and definite. To reduce the computation, here omit the
     % transpose operation on the parameter matrix. Since A is super large,
     % here i split the matrix, letting each component multiply separately.
     times = 1 ; 
-    threshold = 1e-6 ;
+    threshold = 1e-5 ;
     residual = b_CG - matrixMultiply( SysMatrix , divergence , miu , lamda , img_previous ) ; 
     r0 = matrixMultiply( SysMatrix , divergence , miu , lamda , residual ) ;   % initial residual for conjugated gradient algorithm ( CG )
     d0 = r0 ;              % initial search direction for conjugated gradient algorithm ( CG )
     local_e = 100 ;   % initial
+    
+    img_previous = zeros(size(SysMatrix,2),1) ;     % initialization with previous result
     
     while ( times <= iter_CG && local_e >= threshold )
   

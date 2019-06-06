@@ -86,7 +86,7 @@ gradientMatrix_y = gradient2Dmatrix_y(height,width);
 divergence_matrix = divergenceMatrix2D(height,width);
 b1_CG = miu * (SysMatrix') * R ; 
 iter_CG = 15 ;
-img_init = zeros(LDisplay,1) ; 
+% img_init = zeros(LDisplay,1) ; 
 
 % patch operation parameter
 patchsize = [4 , 4] ; 
@@ -129,7 +129,7 @@ for outerloop = 1 : outeriter
                  + lamda2 * ( gradientMatrix_x * ( dx2 + gradientMatrix_x * Display_prior - bx2 ) + gradientMatrix_y * ( dy2 + gradientMatrix_y * Display_prior - by2 ) ) ;
                   
                  iter_CG = 100 ;
-                 Display = cgls4TV ( SysMatrix, divergence_matrix , b_CG , iter_CG , miu , lamda1 + lamda2 , img_init) ;        % here are two choices: 1. using the previous result; 2. using zero initialization
+                 Display = cgls4TV ( SysMatrix, divergence_matrix , b_CG , iter_CG , miu , lamda1 + lamda2 , Display_previous) ;        % here are two choices: 1. using the previous result; 2. using zero initialization
 
                  Display ( Display < MinLim ) = MinLim ;       Display ( Display > MaxLim ) = MaxLim ;   % non-negation constraint
                  
