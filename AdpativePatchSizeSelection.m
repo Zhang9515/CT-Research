@@ -14,10 +14,12 @@ function PatchSize = AdpativePatchSizeSelection( pic , maxSize)
     KLprevious = zeros( numel(pic), 1 ) ;    % store the intermediate variable for each pixel
 
     edges = -180 : 30 : 180 ;      % bin interval of the gradient angle distribution
-    threshold = 1e-3 ;      % KL threshold
+    threshold = 10 ;      % KL threshold
     hist = zeros( numel(pic), numel(edges)-1 ) ;     % store the histogram of gradient angle
     Pprevious = zeros( numel(pic), numel(edges)-1  ) ;    % store the intermediate variable for each pixel
-
+    
+    Flag = zeros( numel(pic) , 1 ) ;     % record if there is a significant structure within the patch
+    
     for pz = 1 : (maxSize-1)/2
         disp(['pz:',num2str(pz)])
         for x = 1+pz : width-pz
@@ -37,6 +39,9 @@ function PatchSize = AdpativePatchSizeSelection( pic , maxSize)
                     if ( (KLcurrent - KLprevious( center_index ) ) > threshold)     % if current KL divergence is larger enough than the previous, we select the current patch size
                         KLprevious( center_index ) = KLcurrent ;
                         PatchSize( center_index ) = 2*(pz-1) + 1 ;
+                        Flag( center_index ) = 1 ;
+                    elseif ( Flag( center_index ) ~= 1 )
+                        PatchSize( center_index ) = maxSize ;
                     end
                 end    
             end      
