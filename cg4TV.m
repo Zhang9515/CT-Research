@@ -1,4 +1,4 @@
-function img = cgls4TV ( SysMatrix, divergence, b_CG , iter_CG , miu , lamda, img_previous_iterative)
+function img = cg4TV ( SysMatrix, divergence, b_CG , iter_CG , miu , lamda, img_previous_iterative)
 % using previous result to compute the search direction      
 %     
 %     img_previous = zeros(size(SysMatrix,2),1) ;     % initialization with previous result
@@ -12,8 +12,7 @@ function img = cgls4TV ( SysMatrix, divergence, b_CG , iter_CG , miu , lamda, im
 
     times = 1 ; 
     threshold = 1e-5 ;
-    residual = b_CG ; 
-    r0 = matrixMultiply( SysMatrix , divergence , miu , lamda , residual ) ;   % initial gradient for conjugated gradient algorithm ( CG )
+    r0 = b_CG - matrixMultiply( SysMatrix , divergence , miu , lamda , img_previous ) ;   % initial residual for conjugated gradient algorithm ( CG ), which is negative of the gradient
     d0 = r0 ;              % initial search direction for conjugated gradient algorithm ( CG )
     local_e = 100 ;   % initial
 
@@ -27,14 +26,14 @@ function img = cgls4TV ( SysMatrix, divergence, b_CG , iter_CG , miu , lamda, im
         else
                 r_previous = r_next ; 
         end
-        AG = matrixMultiply( SysMatrix , divergence , miu , lamda , d ) ; 
-        alpha = ( d' * r_previous ) / ( AG' * AG ) ;
+        Ad = matrixMultiply( SysMatrix , divergence , miu , lamda , d ) ; 
+        alpha = ( d' * r_previous ) / ( d' * Ad ) ;
         img = img_previous + alpha * d ;
         residual = b_CG - matrixMultiply( SysMatrix , divergence , miu , lamda , img ) ; 
         if ( mod ( times , 5 ) == 1 )
-            r_next = matrixMultiply( SysMatrix , divergence , miu , lamda , residual ) ;
+            r_next = residual ;
         else 
-            r_next = r_previous - alpha * matrixMultiply( SysMatrix , divergence , miu , lamda , AG ) ;      
+            r_next = r_previous - alpha * Ad ;      
         end 
         beta = ( r_next' * r_next ) / ( r_previous' * r_previous ) ;  
         d = r_next + beta * d ; 

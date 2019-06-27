@@ -129,7 +129,12 @@ for outerloop = 1 : outeriter
                  + lamda2 * ( gradientMatrix_x * ( dx2 + gradientMatrix_x * Display_prior - bx2 ) + gradientMatrix_y * ( dy2 + gradientMatrix_y * Display_prior - by2 ) ) ;
                   
                  iter_CG = 100 ;
-                 Display = cgls4TV ( SysMatrix, divergence_matrix , b_CG , iter_CG , miu , lamda1 + lamda2 , Display_previous) ;        % here are two choices: 1. using the previous result; 2. using zero initialization
+                 % here are two choices: 1. using the previous result; 2. using zero initialization
+                 % To solve Ax = b , the paramter matrix A is already a
+                 % semidefinite full-rank matrix, so there is no need to
+                 % use norm equation
+                 
+                 Display = cgls4TV ( SysMatrix, divergence_matrix , b_CG , iter_CG , miu , lamda1 + lamda2 , Display_previous) ;        
                  
                  Display ( Display < MinLim ) = MinLim ;       Display ( Display > MaxLim ) = MaxLim ;   % non-negation constraint
                  
