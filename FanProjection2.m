@@ -37,6 +37,11 @@ Ratio = 4 ;                                                           % shoul d 
 RScan = RPic * Ratio ;                                        % distance between source and center point ( radius of trajectory ) 
 
 R = zeros ( length ( BetaScanRange ) ,  length ( Sdomain ) ) ;   % create space to store fan projection
+%%  GPU projection
+picvector = reshape (pic, HeightN * WidthN, 1);
+R = ProjectionFan_2D (picvector, HeightN, WidthN, Size, BetaScanRange', Sdomain', RScan);
+R = reshape( R , LS , LBeta ) ;
+figure,imshow(R, [])
 
 %%  fan derived from inner radon projecion
 % for test step one 
