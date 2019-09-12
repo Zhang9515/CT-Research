@@ -5,9 +5,9 @@
 __device__ const double EPS = 1e-15;
 __device__ const double ERR = 1e-5;
 
-__global__ void ProjectionCone(const float *dev_Pic, float *dev_Projection, const float *dev_Pdomain, const float *dev_BetaScanRange,
+__global__ void ProjectionCone(const float *dev_Pic, double *dev_Projection, const double *dev_Pdomain, const double *dev_BetaScanRange,
 	const double Center_t, const double Center_s, const double *dev_resolution, const int t_length, const int s_length, 
-	const int Pstart, const int Betastart, const double Distance, const int LP, const int LBeta, const float *dev_RandomErr)
+	const int Pstart, const int Betastart, const double Distance, const int LP, const int LBeta, const double *dev_RandomErr)
 {  
 	const unsigned short Pindex = threadIdx.x + Pstart;
 	const unsigned short  Betaindex = blockIdx.x + Betastart;
@@ -16,8 +16,8 @@ __global__ void ProjectionCone(const float *dev_Pic, float *dev_Projection, cons
 
 	dev_Projection[threadid] = 0;
 
-	float P = dev_Pdomain[Pindex];
-	float Beta = dev_BetaScanRange[Betaindex];
+	double P = dev_Pdomain[Pindex];
+	double Beta = dev_BetaScanRange[Betaindex];
 
 	double resolution_1 = dev_resolution[0]; double resolution_2 = dev_resolution[1]; 
 
@@ -220,13 +220,14 @@ __global__ void ProjectionCone(const float *dev_Pic, float *dev_Projection, cons
 }
 
 // Helser function for using CUDA to add vectors in parallel.
-cudaError_t ProjectionCone_3D(const float *Pic, float *Projection, const float *BetaScanRange, const float *Pdomain,
+cudaError_t ProjectionCone_3D(const float *Pic, double *Projection, const double *BetaScanRange, const double *Pdomain,
 	const int t_length, const int s_length, const double Center_t, const double Center_s, const int LBeta, const int LP,
 	const double Distance, const double *resolution)
 {
 	mexPrintf("Hello GenMatParalell!\n");
 
-	float *dev_Pic = 0, *dev_Pdomain = 0, *dev_BetaScanRange = 0, *dev_Projection = 0, *dev_RandomErr = 0;
+	float *dev_Pic = 0;
+	double *dev_Pdomain = 0, *dev_BetaScanRange = 0, *dev_Projection = 0, *dev_RandomErr = 0;
 	double *dev_resolution = 0;
 
 	int threadcubic_x = MIN(threadX, LP);
@@ -237,7 +238,7 @@ cudaError_t ProjectionCone_3D(const float *Pic, float *Projection, const float *
 	int BetaTime = LBeta / blockX;
 	int Pstart = 0;
 	int Betastart = 0;
-	float Beta = 0;
+	double Beta = 0;
 
 	const dim3 thread_cubic(threadcubic_x, 1, 1);
 	const dim3 block_cubic(blockcubic_x, 1, 1);
@@ -258,12 +259,12 @@ cudaError_t ProjectionCone_3D(const float *Pic, float *Projection, const float *
 
 	cudaError_t cudaStatus;
 
-	float *RandomErr =new float[LBeta * LP];
+	double *RandomErr =new double[LBeta * LP];
 	for (int beta = 0; beta < LBeta; beta++)
 	{
 		for (int P = 0; P < LP; P++)
 		{
-			RandomErr[beta * LP + P] = 0.01 * (rand()/float(RAND_MAX)*2-1);
+			RandomErr[beta * LP + P] = 0.01 * (rand()/double(RAND_MAX)*2-1);
 		}
 	}
 
@@ -285,20 +286,20 @@ cudaError_t ProjectionCone_3D(const float *Pic, float *Projection, const float *
 		goto Error;
 	}
 
-	cudaStatus = cudaMalloc((void**)&dev_Projection, LBeta * LP * sizeof(float));
+	cudaStatus = cudaMalloc((void**)&dev_Projection, LBeta * LP * sizeof(double));
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "dev_Projection cudaMalloc failed!");
 		mexPrintf("dev_Projection cudaMalloc failed!\n");
 		goto Error;
 	}
-	cudaStatus = cudaMalloc((void**)&dev_RandomErr, LBeta * LP * sizeof(float));
+	cudaStatus = cudaMalloc((void**)&dev_RandomErr, LBeta * LP * sizeof(double));
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "dev_Projection cudaMalloc failed!");
 		mexPrintf("dev_Projection cudaMalloc failed!\n");
 		goto Error;
 	}
 
-	cudaStatus = cudaMalloc((void**)&dev_Pdomain, LP * sizeof(float));
+	cudaStatus = cudaMalloc((void**)&dev_Pdomain, LP * sizeof(double));
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "dev_t_Range cudaMalloc failed!");
 		mexPrintf("dev_t_Range cudaMalloc failed!\n");
@@ -329,7 +330,7 @@ cudaError_t ProjectionCone_3D(const float *Pic, float *Projection, const float *
 		goto Error;
 	}
 
-	cudaStatus = cudaMemcpy(dev_Pdomain, Pdomain, LP * sizeof(float), cudaMemcpyHostToDevice);
+	cudaStatus = cudaMemcpy(dev_Pdomain, Pdomain, LP * sizeof(double), cudaMemcpyHostToDevice);
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "t_Range cudaMemcpy failed!");
 		mexPrintf("t_Range cudaMemcpy failed!\n");
@@ -350,7 +351,7 @@ cudaError_t ProjectionCone_3D(const float *Pic, float *Projection, const float *
 		goto Error;
 	}
 
-	cudaStatus = cudaMemcpy(dev_RandomErr, RandomErr, LBeta * LP * sizeof(float), cudaMemcpyHostToDevice);
+	cudaStatus = cudaMemcpy(dev_RandomErr, RandomErr, LBeta * LP * sizeof(double), cudaMemcpyHostToDevice);
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "dev_RandomErr cudaMemcpy failed!");
 		mexPrintf("dev_RandomErr cudaMemcpy failed!\n");
@@ -455,7 +456,7 @@ cudaError_t ProjectionCone_3D(const float *Pic, float *Projection, const float *
 	}
 
 	// Copy output vector from GPU buffer to host memory.
-	cudaStatus = cudaMemcpy(Projection, dev_Projection, LP * LBeta * sizeof(float), cudaMemcpyDeviceToHost);
+	cudaStatus = cudaMemcpy(Projection, dev_Projection, LP * LBeta * sizeof(double), cudaMemcpyDeviceToHost);
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaMemcpy failed!\n");
 		mexPrintf("cudaMemcpy failed! %s\n", cudaGetErrorString(cudaStatus));

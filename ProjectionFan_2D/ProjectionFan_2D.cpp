@@ -8,16 +8,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[])
 	const double *Size = mxGetPr(prhs[4]);
 	const double Center_t = Size[0] / 2;    // horizontal plane
 	const double Center_s = Size[1] / 2;    // horizontal plane
-	const float *BetaScanRange = (float*)mxGetPr(prhs[5]);
+	const double *BetaScanRange = (double*)mxGetPr(prhs[5]);
 	const int LBeta = mxGetM(prhs[5]);
-	const float *Pdomain = (float*)mxGetPr(prhs[6]);
+	const double *Pdomain = (double*)mxGetPr(prhs[6]);
 	const int LP = mxGetM(prhs[6]);
 	const long LMat = LBeta * LP;
-	const double Distance = mxGetScalar(prhs[7]);
+	const double Distance = (double)mxGetScalar(prhs[7]);
 
 	const double resolution[] = { Size[0] / t_length, Size[1] / s_length };
-	float *ProjectionConecuda = new float[LMat];
-	memset(ProjectionConecuda, 0, sizeof(float));
+	double *ProjectionConecuda = new double[LMat];
+	memset(ProjectionConecuda, 0, sizeof(double));
 
 	//mexPrintf("%d %d %d\n", t_length, s_length, s_length);
 	//mexPrintf("%f %f %f %d %f %d %f %d %ld %f\n", Pic[77617], Size[2], BetaScanRange[0], LBeta, Pdomain[0], 
