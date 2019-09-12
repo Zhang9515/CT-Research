@@ -1,7 +1,7 @@
 #pragma once
 // 2018/04/16
-#ifndef __PROJECTIONCONE_3D_H__
-#define __PROJECTIONCONE_3D_H__
+#ifndef __PROJECTIONFAN_2D_H__
+#define __PROJECTIONFAN_2D_H__
 #include <mex.h>
 #include <stdio.h>
 #include <math.h>

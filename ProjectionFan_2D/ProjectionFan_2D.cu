@@ -1,4 +1,4 @@
-#include "ProjectionCone_3D.h"
+#include "ProjectionFan_2D.h"
 #include <cstdlib>
 // 2018/04/16
 //__device__ const double PI = 3.141592653589793;
@@ -12,12 +12,12 @@ __global__ void ProjectionCone(const float *dev_Pic, float *dev_Projection, cons
 	const unsigned short Pindex = threadIdx.x + Pstart;
 	const unsigned short  Betaindex = blockIdx.x + Betastart;
 
-	const unsigned long threadid = numB * LBeta * LP + Betaindex * LP + Pindex;
+	const unsigned long threadid = Betaindex * LP + Pindex;
 
 	dev_Projection[threadid] = 0;
 
 	float P = dev_Pdomain[Pindex];
-	float Xigama = dev_BetaScanRange[Betaindex];
+	float Beta = dev_BetaScanRange[Betaindex];
 
 	double resolution_1 = dev_resolution[0]; double resolution_2 = dev_resolution[1]; 
 
@@ -363,7 +363,7 @@ cudaError_t ProjectionCone_3D(const float *Pic, float *Projection, const float *
 	
 	for (int numP = 0; numP < PTime; numP++)
 	{
-		for (int numB = 0; numB < LBeta; numB++)
+		for (int numB = 0; numB < BetaTime; numB++)
 		{
 			Pstart = numP * threadX;
 			Betastart = numB * blockX;
@@ -400,7 +400,7 @@ cudaError_t ProjectionCone_3D(const float *Pic, float *Projection, const float *
 			}
 		}
 
-		for (int numB = 0; numB < LBeta; numB++)
+		for (int numB = 0; numB < BetaTime; numB++)
 		{
 			Betastart = numB * blockX;
 			//("%d %d\n", Pstart, Betastart);
