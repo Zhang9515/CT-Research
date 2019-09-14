@@ -29,7 +29,7 @@ using namespace std;
 #define Maxlim(x) (x>1e+16?1e+16:x)
 #define Minlim(x) (x<-1e+16?-1e+16:x)
 
-cudaError_t ProjectionCone_3D(const float *Pic, double *Projection, const double *BetaScanRange, const double *Pdomain,
+cudaError_t ProjectionFan_2D(const float *Pic, double *Projection, const double *BetaScanRange, const double *Pdomain,
 	const int t_length, const int s_length, const double Center_t, const double Center_s, const int LBeta, const int LP, 
 	const double Distance, const double *resolution);
 

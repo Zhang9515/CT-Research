@@ -5,7 +5,7 @@
 __device__ const double EPS = 1e-15;
 __device__ const double ERR = 1e-5;
 
-__global__ void ProjectionCone(const float *dev_Pic, double *dev_Projection, const double *dev_Pdomain, const double *dev_BetaScanRange,
+__global__ void ProjectionFan(const float *dev_Pic, double *dev_Projection, const double *dev_Pdomain, const double *dev_BetaScanRange,
 	const double Center_t, const double Center_s, const double *dev_resolution, const int t_length, const int s_length, 
 	const int Pstart, const int Betastart, const double Distance, const int LP, const int LBeta, const double *dev_RandomErr)
 {  
@@ -204,7 +204,7 @@ __global__ void ProjectionCone(const float *dev_Pic, double *dev_Projection, con
 		//judge whether the point is in the ROI
 		if ((DetectPoint_t >= 0) && (DetectPoint_t < t_length) && (DetectPoint_s >= 0) && (DetectPoint_s < s_length))
 		{
-			Pointid = t_length * s_length + DetectPoint_s * t_length + DetectPoint_t;
+			Pointid = DetectPoint_s * t_length + DetectPoint_t;
 			Ray += weight * dev_Pic[Pointid];
 		}
 		else
@@ -220,7 +220,7 @@ __global__ void ProjectionCone(const float *dev_Pic, double *dev_Projection, con
 }
 
 // Helser function for using CUDA to add vectors in parallel.
-cudaError_t ProjectionCone_3D(const float *Pic, double *Projection, const double *BetaScanRange, const double *Pdomain,
+cudaError_t ProjectionFan_2D(const float *Pic, double *Projection, const double *BetaScanRange, const double *Pdomain,
 	const int t_length, const int s_length, const double Center_t, const double Center_s, const int LBeta, const int LP,
 	const double Distance, const double *resolution)
 {
@@ -369,13 +369,13 @@ cudaError_t ProjectionCone_3D(const float *Pic, double *Projection, const double
 			Pstart = numP * threadX;
 			Betastart = numB * blockX;
 			//mexPrintf("%d %d\n", Pstart, Betastart);
-			ProjectionCone << <block_cubic, thread_cubic >> >(dev_Pic, dev_Projection, dev_Pdomain, dev_BetaScanRange,
+			ProjectionFan << <block_cubic, thread_cubic >> >(dev_Pic, dev_Projection, dev_Pdomain, dev_BetaScanRange,
 				Center_t, Center_s, dev_resolution, t_length, s_length, Pstart, Betastart, Distance, LP, LBeta, dev_RandomErr);
 			// Check for any errors launching the kernel
 			cudaStatus = cudaGetLastError();
 			if (cudaStatus != cudaSuccess) {
-				fprintf(stderr, "ProjectionCone launch failed: %s\n", cudaGetErrorString(cudaStatus));
-				mexPrintf("ProjectionCone launch failed %s\n", cudaGetErrorString(cudaStatus));
+				fprintf(stderr, "ProjectionFan launch failed: %s\n", cudaGetErrorString(cudaStatus));
+				mexPrintf("ProjectionFan launch failed %s\n", cudaGetErrorString(cudaStatus));
 				mexPrintf("Error happens at Pstart: %d Betastart: %d \n", Pstart, Betastart);
 				goto Error;
 			}
@@ -389,13 +389,13 @@ cudaError_t ProjectionCone_3D(const float *Pic, double *Projection, const double
 		{
 			Betastart = LBeta - LBetaResidual;
 			//("%d %d\n", Pstart, Betastart);
-			ProjectionCone << <block_cubic, thread_cubic >> >(dev_Pic, dev_Projection, dev_Pdomain, dev_BetaScanRange,
+			ProjectionFan << <block_cubic_residual, thread_cubic_residual >> >(dev_Pic, dev_Projection, dev_Pdomain, dev_BetaScanRange,
 				Center_t, Center_s, dev_resolution, t_length, s_length, Pstart, Betastart, Distance, LP, LBeta, dev_RandomErr);
 			// Check for any errors launching the kernel
 			cudaStatus = cudaGetLastError();
 			if (cudaStatus != cudaSuccess) {
-				fprintf(stderr, "ProjectionCone launch failed: %s\n", cudaGetErrorString(cudaStatus));
-				mexPrintf("ProjectionCone launch failed %s\n", cudaGetErrorString(cudaStatus));
+				fprintf(stderr, "ProjectionFan launch failed: %s\n", cudaGetErrorString(cudaStatus));
+				mexPrintf("ProjectionFan launch failed %s\n", cudaGetErrorString(cudaStatus));
 				mexPrintf("Error happens at Pstart: %d Betastart: %d \n", Pstart, Betastart);
 				goto Error;
 			}
@@ -405,13 +405,13 @@ cudaError_t ProjectionCone_3D(const float *Pic, double *Projection, const double
 		{
 			Betastart = numB * blockX;
 			//("%d %d\n", Pstart, Betastart);
-			ProjectionCone << <block_cubic, thread_cubic >> >(dev_Pic, dev_Projection, dev_Pdomain, dev_BetaScanRange,
+			ProjectionFan << <block_cubic, thread_cubic_residual >> >(dev_Pic, dev_Projection, dev_Pdomain, dev_BetaScanRange,
 				Center_t, Center_s, dev_resolution, t_length, s_length, Pstart, Betastart, Distance, LP, LBeta, dev_RandomErr);
 			// Check for any errors launching the kernel
 			cudaStatus = cudaGetLastError();
 			if (cudaStatus != cudaSuccess) {
-				fprintf(stderr, "ProjectionCone launch failed: %s\n", cudaGetErrorString(cudaStatus));
-				mexPrintf("ProjectionCone launch failed %s\n", cudaGetErrorString(cudaStatus));
+				fprintf(stderr, "ProjectionFan launch failed: %s\n", cudaGetErrorString(cudaStatus));
+				mexPrintf("ProjectionFan launch failed %s\n", cudaGetErrorString(cudaStatus));
 				mexPrintf("Error happens at Pstart: %d Betastart: %d \n", Pstart, Betastart);
 				goto Error;
 			}
@@ -424,13 +424,13 @@ cudaError_t ProjectionCone_3D(const float *Pic, double *Projection, const double
 		{
 			Pstart = numP * threadX;
 			//mexPrintf("%d %d\n", Pstart, Betastart);
-			ProjectionCone << <block_cubic, thread_cubic >> >(dev_Pic, dev_Projection, dev_Pdomain, dev_BetaScanRange,
+			ProjectionFan << <block_cubic_residual, thread_cubic >> >(dev_Pic, dev_Projection, dev_Pdomain, dev_BetaScanRange,
 				Center_t, Center_s, dev_resolution, t_length, s_length, Pstart, Betastart, Distance, LP, LBeta, dev_RandomErr);
 			// Check for any errors launching the kernel
 			cudaStatus = cudaGetLastError();
 			if (cudaStatus != cudaSuccess) {
-				fprintf(stderr, "ProjectionCone launch failed: %s\n", cudaGetErrorString(cudaStatus));
-				mexPrintf("ProjectionCone launch failed %s\n", cudaGetErrorString(cudaStatus));
+				fprintf(stderr, "ProjectionFan launch failed: %s\n", cudaGetErrorString(cudaStatus));
+				mexPrintf("ProjectionFan launch failed %s\n", cudaGetErrorString(cudaStatus));
 				mexPrintf("Error happens at Pstart: %d Betastart: %d \n", Pstart, Betastart);
 				goto Error;
 			}
@@ -469,6 +469,7 @@ Error:
 	cudaFree(dev_Projection);
 	cudaFree(dev_Pic);
 	cudaFree(dev_resolution);
+	cudaFree(dev_RandomErr);
 
 	return cudaStatus;
 }
