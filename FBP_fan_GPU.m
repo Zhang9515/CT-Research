@@ -15,7 +15,7 @@
 tic 
 clear all;
 Size = [ 60 , 60 ] ;                                  % actual range
-pic = single(phantom( 513 )) ;           % original picture : number means the number of pixel in the range 
+pic = single(phantom( 129 )) ;           % original picture : number means the number of pixel in the range 
 
 BetaScanInt = deg2rad(1) ;             % scanning internal              
 MaxBeta = deg2rad(360) ; 
@@ -44,10 +44,11 @@ R = ProjectionFan_2D ( picvector, height, width, Size, BetaScanRange', Pdomain',
 % figure,imshow(R, [])
 
 Display = FBPfan( single(R) , single(BetaScanRange') , single(Pdomain') , Size , height, width, RScan ) ;
+% Display = BackprojectionFan2D( single(R) , single(BetaScanRange') , single(Pdomain') , Size , height, width, RScan ) ;
 
 %% Display 
 Display = Vec2img_Cpp2Mat2D( Display , height , width ) ;
-figure,imshow( Display , [0 1])
+figure,imshow( Display , [])
 
 % ProjectionDisplay = flipud ( Projection' ) ;
 % figure , imshow( ProjectionDisplay , [ 0 , 1 ] ) ; 
