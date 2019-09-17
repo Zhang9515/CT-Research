@@ -18,7 +18,7 @@ __global__ void GFunction(float *dev_G, const float PInt, const int pstart, cons
 	}
 }
 
-__global__ void PreWeightFilter(float *dev_Rcov, float *dev_R, const float *dev_G, const float PInt, const float *dev_Pdomain， 
+__global__ void PreWeightFilter(float *dev_Rcov, float *dev_R, const float *dev_G, const float PInt, const float *dev_Pdomain, 
 	const int LP, const int pstart, const int Betastart, const int gstart, const int gend, const double Rscan)
 {
 	const unsigned int Pindex = threadIdx.x + pstart;
