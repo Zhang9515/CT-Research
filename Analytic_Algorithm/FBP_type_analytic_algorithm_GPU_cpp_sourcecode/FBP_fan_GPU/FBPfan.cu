@@ -29,7 +29,7 @@ __global__ void PreWeightFilter(float *dev_Rcov, float *dev_R, const float *dev_
 	double Rcovsum = 0;
 	// convolution
 	float P = dev_Pdomain[Pindex];
-	double Proportion = Distance / sqrt(pow2(Distance) + pow2(P));
+	double Proportion = Rscan / sqrt(pow2(Rscan) + pow2(P));
 
 	dev_R[thread_id] = dev_R[thread_id] * Proportion;    // directly cover the input
 
@@ -307,7 +307,7 @@ cudaError_t FBPfan(float *Display, const float *R, const float *Pdomain, const f
 				}
 				/*mexPrintf("gstart: %d\n", gstart);
 				mexPrintf("gend: %d\n", gend);*/
-				PreWeightFilter << <block_cubic, thread_cubic >> > (dev_Rcov, dev_R, dev_G, PInt, dev_Pdomain，LP, pstart, Betastart, gstart, gend，Rscan);
+				PreWeightFilter << <block_cubic, thread_cubic >> > (dev_Rcov, dev_R, dev_G, PInt, dev_Pdomain, LP, pstart, Betastart, gstart, gend, Rscan);
 
 				// Check for any errors launching the kernel
 				cudaStatus = cudaGetLastError();
@@ -342,7 +342,7 @@ cudaError_t FBPfan(float *Display, const float *R, const float *Pdomain, const f
 				}
 				/*mexPrintf("gstart: %d\n", gstart);
 				mexPrintf("gend: %d\n", gend);*/
-				PreWeightFilter << <block_cubic_residual, thread_cubic_residual >> > (dev_Rcov, dev_R, dev_G, PInt, dev_Pdomain，LP, pstart, Betastart, gstart, gend，Rscan);
+				PreWeightFilter << <block_cubic_residual, thread_cubic_residual >> > (dev_Rcov, dev_R, dev_G, PInt, dev_Pdomain, LP, pstart, Betastart, gstart, gend, Rscan);
 				// Check for any errors launching the kernel
 				cudaStatus = cudaGetLastError();
 				if (cudaStatus != cudaSuccess) {
@@ -372,7 +372,7 @@ cudaError_t FBPfan(float *Display, const float *R, const float *Pdomain, const f
 				}
 				/*mexPrintf("gstart: %d\n", gstart);
 				mexPrintf("gend: %d\n", gend);*/
-				PreWeightFilter << <block_cubic, thread_cubic_residual >> > (dev_Rcov, dev_R, dev_G, PInt, dev_Pdomain，LP, pstart, Betastart, gstart, gend，Rscan);
+				PreWeightFilter << <block_cubic, thread_cubic_residual >> > (dev_Rcov, dev_R, dev_G, PInt, dev_Pdomain, LP, pstart, Betastart, gstart, gend, Rscan);
 				// Check for any errors launching the kernel
 				cudaStatus = cudaGetLastError();
 				if (cudaStatus != cudaSuccess) {
@@ -405,7 +405,7 @@ cudaError_t FBPfan(float *Display, const float *R, const float *Pdomain, const f
 				}
 				/*mexPrintf("gstart: %d\n", gstart);
 				mexPrintf("gend: %d\n", gend);*/
-				PreWeightFilter << <block_cubic_residual, thread_cubic >> > (dev_Rcov, dev_R, dev_G, PInt, dev_Pdomain，LP, pstart, Betastart, gstart, gend，Rscan);
+				PreWeightFilter << <block_cubic_residual, thread_cubic >> > (dev_Rcov, dev_R, dev_G, PInt, dev_Pdomain, LP, pstart, Betastart, gstart, gend, Rscan);
 				// Check for any errors launching the kernel
 				cudaStatus = cudaGetLastError();
 				if (cudaStatus != cudaSuccess) {
