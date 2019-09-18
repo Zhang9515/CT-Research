@@ -1,6 +1,7 @@
 % 19/05/22 by ZXZ
 %TV based iterative algorithm with patch prior
 % set prior term as the penalty term instead of just setting as an initiate
+% fan beam
 tic
 clear;
 % close all;
@@ -8,18 +9,19 @@ clear;
 % lab computer
 % load 'G:\CTcode\Data\trial2D'
 % server2 path
-load ..\Data\trial2D
-load ..\Data\trial2D_prior_360
-save_path = '..\Data\PICCS_miu200_lamda0.001_p4s3sp5_CGzero_init\' ;
+load ..\..\..\Data\Adaptive_patchsize_selection\trial2D
+load ..\..\..\Data\Adaptive_patchsize_selection\trial2D_prior_324
+load ..\..\..\Data\Adaptive_patchsize_selection\trial2D_angle72_ratio1
+save_path = '..\..\..\Data\Adaptive_patchsize_selection\PICCS_miu200_lamda0.001_p4s3sp5_CG_PreInit\' ;
 % load 'E:\ZXZ\Data\trial2D_angle5'
 % display parameter
 displaywindow = [0 0.5] ;
 
 % parameter define
-thetaint = deg2rad(5) ;                                                                 % theta unit 
-Maxtheta = deg2rad(360) ;
-thetaRange = thetaint : thetaint : Maxtheta ;                                % radon scanning range
-Ltheta = length ( thetaRange ) ; 
+BetaScanInt = deg2rad(5) ;             % scanning internal              
+MaxBeta = deg2rad(360) ; 
+BetaScanRange = BetaScanInt : BetaScanInt : MaxBeta  ;     % scanning range , angle between SO and aixs Y
+LBeta = length ( BetaScanRange ) ; 
 
 pic = trial2D ; 
 % clear trial2D
@@ -27,34 +29,34 @@ pic = trial2D ;
 Size = [ 60 , 60 ] ;                                  % actual range
 
 [ height , width ] = size ( pic ) ;              % store the size of picture
-Resolution = max ( Size ) / height ;   % define the resolution of pic
-Center_y = Size ( 1 ) / 2 ;  Center_x = Size ( 1 ) / 2 ;      % define the center 
-Rpic = 0.5 * sqrt ( 2 ) * Size ( 1 ) ; 
+Resolution = max ( Size ) / max ( size ( pic ) ) ;   % define the resolution of pic
+RPic = max ( Size ) * sqrt ( 2 ) / 2 ;                     % radius of project
 
-tmax = round ( Rpic * 1.1 ) ;
-t_int = 0.1 ;
-t_range =  -tmax : t_int : tmax ;
-Lt = length ( t_range ) ;
+Center_x = Size ( 1 ) / 2 ;  Center_y = Size ( 2 ) / 2 ;      % make the center point overlay the center pixel  
 
-R = zeros ( Lt ,  Ltheta ) ;   % create space to store fan projection
+MaxP = RPic * ( 1 + 0.1 )  ;                                           
+PInt = Resolution ;                      %   interval of S ( interval on the detect plain ), empircally pixel-detector ratio is related to size of image
+Pdomain = - MaxP : PInt : MaxP ;                          % detective range
+LP = length ( Pdomain ) ;
+
+Ratio = 4 ;                                                           % should be smaller than 8
+RScan = RPic * Ratio ;                                        % distance between source and center point ( radius of trajectory ) 
+
+R = zeros ( LP ,  LBeta ) ;   % create space to store fan projection
 %% compute system matrix
 
 % SysMatrix = GenSysMatParal ( height , width , Size , Center_x , Center_y , thetaRange , t_range ) ;
-load SysMatrix
+% load SysMatrix
 picvector = Img2vec_Mat2Cpp2D( pic ) ;  % original image
 clear pic
-R = SysMatrix * double(picvector) ;        % generate projection with system matrix
-% R = reshape( R , Lt , Ltheta ) ;
+% R = SysMatrix * double(picvector) ;        % generate projection with system matrix
+R = ProjectionFan_2D ( picvector, height, width, Size, BetaScanRange', Pdomain', RScan ) ;
+% R = reshape( R , LP , LBeta ) ;
 % figure,imshow(R,[])
 % Norm = norm ( R ) ;
 % Norm_pic = norm ( picvector ) ;
 % % load A.mat
 % % SysMatrix = A ; 
-%% GPU-based projection 
-% picvector = Img2vec_Mat2Cpp2D( pic ) ;
-% R = ProjectionParallel_2D( picvector , height , width , Size ,thetaRange' , t_range' ) ;     % store parallel beam projection
-% R2 = reshape( R2 , Lt , Ltheta ) ;
-% figure,imshow(R2,[])
 
 %% iterative
 % S.Kaczmarz Method
@@ -71,11 +73,9 @@ LDisplay = numel ( Display ) ;
 % Err = R - SysMatrix * Display ;
 % Residual = zeros ( Times ) ;  Residual ( 1 ) = norm ( Err ) / ( Norm ) ;      % used as stop condition
 figure  % hold residual graph
-load ..\Data\Display_previous
+Display_previous = trial2D_angle72_ratio1 ;
 % Display_previous = FBPparallel( single(R) , single(thetaRange') , single(t_range') , Size , height ,width ) ;
 
-Display_previous = Vec2img_Cpp2Mat2D( Display_previous , height , width ) ;
-imshow ( Display_previous , displaywindow ) ;                     % display results
 drawnow;
             
 gradientMatrix_x = gradient2Dmatrix_x(height,width);
