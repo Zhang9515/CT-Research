@@ -5,7 +5,7 @@
 tic
 clear;
 % close all;
-%%
+%% CT parameter setting
 % lab computer
 % load 'G:\CTcode\Data\trial2D'
 % server2 path
@@ -61,7 +61,6 @@ R = ProjectionFan_2D ( picvector, height, width, Size, BetaScanRange', Pdomain',
 %% iterative
 % S.Kaczmarz Method
 Threshold = 1e-6 ;
-innerTimes = 15 ;
 MaxLim = 1 ; MinLim = 0 ;    % value limit
 miu = 200 ;        % regularization parameter for TV
 alpha = 0.5 ;    % panelty balance between the prior and the current 
@@ -83,38 +82,44 @@ gradientMatrix_y = gradient2Dmatrix_y(height,width);
 
 % preparation for CG
 divergence_matrix = divergenceMatrix2D(height,width);
-b1_CG = miu * (SysMatrix') * R ; 
-iter_CG = 500 ;
+% b1_CG = miu * (SysMatrix') * R ; 
+b1_CG = miu * BackprojectionFan2D( single(R) , single(BetaScanRange') , single(Pdomain') , Size , height, width, RScan ) ;
+iter_CG = 80 ;
 % img_init = zeros(LDisplay,1) ; 
 
 % patch operation parameter
-patchsize = [4 , 4] ; 
+patchsize = [30 , 30] ; 
 slidestep = [3 , 3] ;
-sparsity = 5 ; 
+sparsity = 3 ; 
 % construct dictionary, because here image patches are directly used as
 % atom, dictionary keeps still
-HighQ_image = trial2D ;
-% HighQ_image = trial2D_prior_360 ;
-clear trial2D_prior_360
+% HighQ_image = trial2D ;
+HighQ_image = trial2D_prior ;
+clear trial2D_prior
 patchset_HighQ = ExtractPatch2D ( HighQ_image , patchsize , slidestep, 'NoRemoveDC' ) ;    % extract the patches from the high quality image as the atoms of the dictionary, which should be normalized later
 Dictionary = col_normalization( patchset_HighQ ) ;    % Dictionary, of which each atom has been normalized 
  
-% max outloop
+% set loop times
 outeriter = 20 ;
+innerTimes = 2 ;
+
 rmse = zeros( innerTimes , outeriter ) ;                                       % judgement parameter
 PSNR = zeros( innerTimes , outeriter ) ;
+% texture part: 280:360,120:200
+% plain part : 140:220,320:400
+
 for outerloop = 1 : outeriter
     disp(['outerloop : ' , num2str(outerloop),'/',num2str(outeriter)])
     %% patch operation
     Display = double ( Img2vec_Mat2Cpp2D( Display_previous ) ) ;      % set the result of last iterate as the initiate value of current iterate
     patchset_LowQ = ExtractPatch2D ( Display_previous , patchsize , slidestep, 'NoRemoveDC' ) ;    % extract the patches from the low quality image which need to be improved, store here to compute the DC later
        
-    Xintm = ExtractPatch2D ( Display_previous, patchsize, slidestep, 'NoRemoveDC' ) ;    % Xintm is set of patches which extracted from the low quality image
-    Alpha = omp( Dictionary , Xintm , Dictionary' * Dictionary , sparsity ) ;     % use OMP to fit Xintm
+    patchset_Noisy = ExtractPatch2D ( Display_previous, patchsize, slidestep, 'NoRemoveDC' ) ;    % Xintm is set of patches which extracted from the low quality image
+    Alpha = omp( Dictionary , patchset_Noisy , Dictionary' * Dictionary , sparsity ) ;     % use OMP to fit Xintm
     Image2D = PatchSynthesis ( Dictionary * Alpha, patchset_LowQ, patchsize, slidestep, [height , width], 'NoAddDC' ) ;    % fuse all patches
     imshow ( Image2D , displaywindow ) ;                     % display results
     drawnow ;
-    Display_prior = double ( Img2vec_Mat2Cpp2D( Image2D ) );
+     Display_prior = double ( Img2vec_Mat2Cpp2D( Image2D ) );
     
     % initial of inner SB iterative, all parameter should be initialized
     % based on zero input
@@ -152,14 +157,16 @@ for outerloop = 1 : outeriter
                  % To solve Ax = b , the paramter matrix A is already a
                  % semidefinite full-rank matrix, so there is no need to
                  % use norm equation
-                 systemfunc = @(vec,tt) miu * (SysMatrix') * ( SysMatrix * vec ) + (lamda1 + lamda2) * divergence_matrix * vec ;
+%                  systemfunc = @(vec,tt) miu * (SysMatrix') * ( SysMatrix * vec ) + (lamda1 + lamda2) * divergence_matrix * vec ;
+                 systemfunc = @(vec,tt) miu * BackprojectionFan2D( single ( ProjectionFan_2D ( single(vec), height, width, Size, BetaScanRange', Pdomain', RScan ) ) , single(BetaScanRange') , single(Pdomain') , Size , height, width, RScan ) ...
+                     + (lamda1 + lamda2) * divergence_matrix * vec ;
 %                  [Display,flag,resNE,iter] = cgls(systemfunc, b_CG, 0, 1e-6, iter_CG, true, Display_previous) ;
-                 [Display,flag,resNE,iter] = cg(systemfunc, b_CG, 1e-6, iter_CG, true, Display_previous,double(picvector)) ;
+                 [Display,flag,resNE,iter] = cg(systemfunc, b_CG, 1e-6, iter_CG, true, Display_previous, picvector) ;
                  
 %                  Display = cg4TV ( SysMatrix, divergence_matrix , Display_det1, Display_det2, b_CG , iter_CG , miu , lamda1 + lamda2 , Display_previous ) ;        
 %                  Display = cgls4TV ( SysMatrix, divergence_matrix , b_CG , iter_CG , miu , lamda1 + lamda2 , Display_previous) ;        
-                 miu1 = max(0 , miu1 - xig1 * (Display - MinLim)) ; miu2 = max( 0 , miu2 - xig2 * (-Display + MaxLim ) ) ;
-                 xig1 = xig1 * rate1 ; xig2 = xig2 * rate2 ;
+%                  miu1 = max(0 , miu1 - xig1 * (Display - MinLim)) ; miu2 = max( 0 , miu2 - xig2 * (-Display + MaxLim ) ) ;
+%                  xig1 = xig1 * rate1 ; xig2 = xig2 * rate2 ;
                  Display ( Display < MinLim ) = MinLim ;       Display ( Display > MaxLim ) = MaxLim ;   % non-negation constraint
                  
                  Substract_Display = Display - Display_prior ;
@@ -177,7 +184,7 @@ for outerloop = 1 : outeriter
                  local_e = LocalError( Display , Display_previous ) ;
                  % objective function ( which is different from the previous)
                  loss = alpha * (norm(gradientMatrix_x * Display,1) + norm(gradientMatrix_y * Display,1)) + ( 1 - alpha ) * (norm(gradientMatrix_x * Substract_Display,1) + norm(gradientMatrix_y * Substract_Display,1))...
-                 + 0.5 * miu * norm(SysMatrix * Display - R ,2) ;     
+                 + 0.5 * miu * norm(ProjectionFan_2D ( single(Display), height, width, Size, BetaScanRange', Pdomain', RScan ) - R ,2) ;     
                  disp ( ['IterativeTime: ', num2str(IterativeTime), ';   |    RMSE: ', num2str(rmse ( IterativeTime ,outerloop)), ';   |    psnr: ', num2str(PSNR ( IterativeTime , outerloop)), ';   |    local_e: ', num2str(local_e), ';   |    Loss: ', num2str(loss)]) ;
                  disp( ['SplitBregman_Constraint_X1: ',  num2str(norm(dx1-gradientMatrix_x * Display,2)), '  Constraint_Y1: ', num2str(norm(dy1-gradientMatrix_y * Display,2)), ...
                      '  Constraint_X2: ', num2str(norm(dx2-gradientMatrix_x * Substract_Display,2)), '  Constraint_Y2: ' , num2str(norm(dy2-gradientMatrix_y * Substract_Display,2))] )
@@ -186,13 +193,16 @@ for outerloop = 1 : outeriter
     %     drawnow ;           
 
                 IterativeTime = IterativeTime + 1 ;
+                test_display = Vec2img_Cpp2Mat2D( Display , height , width ) ;
+                imshow ( test_display , displaywindow ) ;                     % display results
+                drawnow;
     end
 
     Display = Vec2img_Cpp2Mat2D( Display , height , width ) ;
     imshow ( Display , displaywindow ) ;                     % display results
     drawnow;
-    save_path_pic = strcat(save_path,num2str(outerloop)) ;
-    save( save_path_pic, 'Display') ;
+%     save_path_pic = strcat(save_path,num2str(outerloop)) ;
+%     save( save_path_pic, 'Display') ;
     Display_previous = Display ;
 end
 save_path_rmse = strcat(save_path , 'rmse') ;
@@ -207,6 +217,30 @@ save( save_path_psnr , 'PSNR' );
 % figure,plot( 1 : size ( pic , 1 ) , Display ( : , 129 ) , 1 : size ( pic , 1 ) , pic ( : , 129 ) ) ;    % display transversal
 % title ( ' grey distrubition ' ) ;
 % axis ( [ 0 256 0 1 ] ) ;
+%% save image code
+figure,imshow ( Display, displaywindow,'border', 'tight','initialmagnification','fit') ;
+set (gcf,'Position',[0,0,height,width]);   
+print -djpeg -r600 ..\..\..\Data\Adaptive_patchsize_selection\global_patchsize30_iter3_SB_out1    % grey image -r600, color image -r300
+figure,imshow ( p30_iter3_zoom_plain_out1, displaywindow,'border', 'tight','initialmagnification','fit') ;
+set (gcf,'Position',[0,0,height,width]);   
+print -djpeg -r600 ..\..\..\Data\Adaptive_patchsize_selection\global_patchsize30_iter3_zoom_plain_SB_out1    % grey image -r600, color image -r300
+figure,imshow ( p30_iter3_zoom_texture_out1, displaywindow,'border', 'tight','initialmagnification','fit') ;
+set (gcf,'Position',[0,0,height,width]);   
+print -djpeg -r600 ..\..\..\Data\Adaptive_patchsize_selection\global_patchsize30_iter3_zoom_texture_SB_out1    % grey image -r600, color image -r300
+%% process code
+trial2D_zoom_plain = trial2D(280 :360 ,120 :200) ;
+trial2D_zoom_texture = trial2D(140 :220 ,320 :400 ) ;
+p30_iter3_zoom_plain_out1 = Display(280 :360 ,120 :200 ) ;
+p30_iter3_zoom_texture_out1 = Display(140 :220 ,320 :400) ;
+psnr( Display,trial2D)
+psnr(p30_iter3_zoom_plain_out1,trial2D_zoom_plain)
+psnr(p30_iter3_zoom_texture_out1,trial2D_zoom_texture)
+ssim( Display,trial2D) 
+ssim(p30_iter3_zoom_plain_out1,trial2D_zoom_plain)
+ssim(p30_iter3_zoom_texture_out1,trial2D_zoom_texture)
+rRMSE( Display,trial2D)
+rRMSE(p30_iter3_zoom_plain_out1,trial2D_zoom_plain)
+rRMSE(p30_iter3_zoom_texture_out1,trial2D_zoom_texture)
 
 
  toc
