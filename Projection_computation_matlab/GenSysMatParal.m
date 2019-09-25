@@ -30,15 +30,19 @@ function [ SysMatrix ] = GenSysMatParal ( height , width , Size , Center_x , Cen
                         DetectPoint_yend = Center_y - t * sin ( -theta ) + Smax * cos ( -theta ) ;     % Note that : 0 is the start
                         DetectPoint_terminal = [ DetectPoint_ystart , DetectPoint_xstart ; DetectPoint_yend , DetectPoint_xend ] ;  
                         
+                        X2Y = ( DetectPoint_yend - DetectPoint_ystart ) / ( DetectPoint_xend - DetectPoint_xstart + eps ) ;
+                        Y2X = ( DetectPoint_xend - DetectPoint_xstart ) / ( DetectPoint_yend - DetectPoint_ystart + eps ) ;
+                        X2Y = rangelimit( X2Y ) ; Y2X = rangelimit( Y2X ) ; 
+                        
                         [ Lx , Ly , x_signal , y_signal , ProjectionLine ] = Siddon2D ( DetectPoint_terminal , Resolution , Size , height , width , Smax ) ;    % call Siddon2D function
                         
                         % for the situation of Ly = 0 or Lx = 0 and also
                         % define the start point in the picture exactly
                         if ( ProjectionLine ( 3 , 1 ) == 1 )
-                                DetectPoint_x =  DetectPoint_xstart + ( ProjectionLine ( 2 , 1 ) * Resolution - DetectPoint_ystart ) / tan ( theta + pi / 2 ) ;                   % start point of the line
+                                DetectPoint_x =  DetectPoint_xstart + ( ProjectionLine ( 2 , 1 ) * Resolution - DetectPoint_ystart ) * Y2X ;                   % start point of the line
                                 DetectPoint_x = ceil ( DetectPoint_x / Resolution ) ;         % to determine the pixel index
                         else
-                                DetectPoint_y =  DetectPoint_ystart + ( ProjectionLine ( 2 , 1 ) * Resolution - DetectPoint_xstart ) * tan ( theta + pi / 2 ) ;          
+                                DetectPoint_y =  DetectPoint_ystart + ( ProjectionLine ( 2 , 1 ) * Resolution - DetectPoint_xstart ) * X2Y ;          
                                 DetectPoint_y = ceil ( DetectPoint_y / Resolution ) ;        % to determine the pixel index
                         end
                         

@@ -10,59 +10,61 @@ clear all;
 % server2 path
 % parameter define
 load ..\..\Data\Adaptive_patchsize_selection\trial2D
+displaywindow = [0 0.5] ;
 
-% %% fan beam model
-% displaywindow = [0 0.5] ;
-% 
-% BetaScanInt = deg2rad(5) ;             % scanning internal              
-% MaxBeta = deg2rad(360) ; 
-% BetaScanRange = BetaScanInt : BetaScanInt : MaxBeta  ;     % scanning range , angle between SO and aixs Y
-% LBeta = length ( BetaScanRange ) ; 
-% 
-% pic = trial2D ; 
-% % clear trial2D
-% % pic = phantom(512) ;
-% Size = [ 60 , 60 ] ;                                  % actual range
-% 
-% [ height , width ] = size ( pic ) ;              % store the size of picture
-% Resolution = max ( Size ) / max ( size ( pic ) ) ;   % define the resolution of pic
-% RPic = max ( Size ) * sqrt ( 2 ) / 2 ;                     % radius of project
-% 
-% Center_x = Size ( 1 ) / 2 ;  Center_y = Size ( 2 ) / 2 ;      % make the center point overlay the center pixel  
-% 
-% MaxP = RPic * ( 1 + 0.1 )  ;                                           
-% PInt = Resolution ;                      %   interval of S ( interval on the detect plain ), empircally pixel-detector ratio is related to size of image
-% Pdomain = - MaxP : PInt : MaxP ;                          % detective range
-% LP = length ( Pdomain ) ;
-% 
-% Ratio = 4 ;                                                           % should be smaller than 8
-% RScan = RPic * Ratio ;                                        % distance between source and center point ( radius of trajectory ) 
-% 
-% R = zeros ( LP ,  LBeta ) ;   % create space to store fan projection
-%% parallel beam model
-pic = single(trial2D) ; 
+%% fan beam model
 
+BetaScanInt = deg2rad(5) ;             % scanning internal              
+MaxBeta = deg2rad(360) ; 
+BetaScanRange = BetaScanInt : BetaScanInt : MaxBeta  ;     % scanning range , angle between SO and aixs Y
+LBeta = length ( BetaScanRange ) ; 
+
+pic = trial2D ; 
+% clear trial2D
+% pic = phantom(512) ;
 Size = [ 60 , 60 ] ;                                  % actual range
 
 [ height , width ] = size ( pic ) ;              % store the size of picture
-Resolution = max ( Size ) / height ;   % define the resolution of pic
-Center_i = Size ( 1 ) / 2 ;  Center_j = Size ( 1 ) / 2 ;      % define the center 
-Rpic = 0.5 * sqrt ( 2 ) * Size ( 1 ) ; 
+Resolution = max ( Size ) / max ( size ( pic ) ) ;   % define the resolution of pic
+RPic = max ( Size ) * sqrt ( 2 ) / 2 ;                     % radius of project
 
-% tmax = round ( Rpic * 1.1 ) ;
-% t_int = 0.05 ;
-% t_range =  -tmax : t_int : tmax ;
-tmax = RPic * ( 1 + 0.1 ) ; 
-t_int = Resolution ;
-t_range =  (-tmax : t_int : tmax) ;
-Lt = length ( t_range ) ;
+Center_x = Size ( 1 ) / 2 ;  Center_y = Size ( 2 ) / 2 ;      % make the center point overlay the center pixel  
 
-thetaint = deg2rad(5) ;     % theta unit 
-Maxtheta = deg2rad(360) ;      
-thetaRange = thetaint : thetaint : Maxtheta ;                                % radon scanning range, radian
-Ltheta = length ( thetaRange ) ; 
+MaxP = RPic * ( 1 + 0.1 )  ;                                           
+PInt = Resolution ;                      %   interval of S ( interval on the detect plain ), empircally pixel-detector ratio is related to size of image
+Pdomain = - MaxP : PInt : MaxP ;                          % detective range
+LP = length ( Pdomain ) ;
 
-R = zeros ( Lt ,  Ltheta ) ;   % create space to store fan projection
+Ratio = 4 ;                                                           % should be smaller than 8
+RScan = RPic * Ratio ;                                        % distance between source and center point ( radius of trajectory ) 
+
+R = zeros ( LP ,  LBeta ) ;   % create space to store fan projection
+picvector = Img2vec_Mat2Cpp2D( pic ) ;
+%% parallel beam model
+% pic = single(trial2D) ; 
+% pic = phantom( 512 ) ;
+% 
+% Size = [ 60 , 60 ] ;                                  % actual range
+% 
+% [ height , width ] = size ( pic ) ;              % store the size of picture
+% Resolution = max ( Size ) / height ;   % define the resolution of pic
+% Center_x = Size ( 1 ) / 2 ;  Center_y = Size ( 1 ) / 2 ;      % define the center 
+% Rpic = 0.5 * sqrt ( 2 ) * Size ( 1 ) ; 
+% 
+% % tmax = round ( Rpic * 1.1 ) ;
+% % t_int = 0.05 ;
+% % t_range =  -tmax : t_int : tmax ;
+% tmax = Rpic * ( 1 + 0.1 ) ; 
+% t_int = Resolution ;
+% t_range =  (-tmax : t_int : tmax) ;
+% Lt = length ( t_range ) ;
+% 
+% thetaint = deg2rad(5) ;     % theta unit 
+% Maxtheta = deg2rad(360) ;      
+% thetaRange = thetaint : thetaint : Maxtheta ;                                % radon scanning range, radian
+% Ltheta = length ( thetaRange ) ; 
+% 
+% R = zeros ( Lt ,  Ltheta ) ;   % create space to store fan projection
 
 %% formualr projection
 
@@ -70,23 +72,24 @@ R = zeros ( Lt ,  Ltheta ) ;   % create space to store fan projection
 % R = reshape ( R' , 1 , Ltheta * Lt ) ;       %  to be consistent with sysmatix
 
 %% compute system matrix
-
-SysMatrix = GenSysMatParal ( height , width , Size , Center_x , Center_y , thetaRange , t_range ) ;
+% parallel beam
+% SysMatrix = GenSysMatParal ( height , width , Size , Center_x , Center_y , thetaRange , t_range ) ;
 % load ..\..\Data\SysMatrix_parallel_512
-picvector = Img2vec_Mat2Cpp2D( pic ) ;  % original image
-% tic
-% R = SysMatrix * double(picvector) ;        % generate projection with system matrix
-% toc
-% R = reshape( R , Lt , Ltheta ) ;
+% fan beam
+% SysMatrix = GenSysMatFan ( height, width, Size, BetaScanRange, Pdomain, RScan, Center_x , Center_y) ;
+load ..\..\Data\SysMatrix_fan_512
+R = SysMatrix * double(picvector) ;        % generate projection with system matrix
+
+% R = reshape( R , Lt , Ltheta ) ;   % parallel
+% R = reshape( R , LP ,  LBeta ) ;  % fan 
 % figure,imshow(R,[])
 % Norm_pic = norm ( picvector ) ;
 % % load A.mat
 % % SysMatrix = A ; 
 %% GPU-based projection 
-% picvector = Img2vec_Mat2Cpp2D( pic ) ;
 % R = ProjectionFan_2D ( picvector, height, width, Size, BetaScanRange', Pdomain', RScan ) ;
 % tic
-R = ProjectionParallel_2D( picvector , height , width , Size , thetaRange' , t_range' ) ; 
+% R = ProjectionParallel_2D( picvector , height , width , Size , thetaRange' , t_range' ) ; 
 % toc
 % R2 = reshape( R2 , Lt , Ltheta ) ;
 % figure,imshow(R2,[])
@@ -103,10 +106,10 @@ MinLim = 0 ; MaxLim = 1;     % range constraint of solution
 LDisplay = length ( Display ) ;
 LR = length(R) ;
 rmse = zeros( 1 ,  Times ) ;                                       % judgement parameter
-% Display_previous = FBPfan( single(R) , single(BetaScanRange') , single(Pdomain') , Size , height, width, RScan ) ;
-% Err = R - ProjectionFan_2D ( single(Display_previous), height, width, Size, BetaScanRange', Pdomain', RScan ) ;
-Display_previous = FBPparallel( single(R) , single(thetaRange') , single(t_range') , Size , height ,width ) ;
-Err = R - ProjectionParallel_2D( single(Display_previous) , height , width , Size , thetaRange' , t_range' ) ;
+Display_previous = FBPfan( single(R) , single(BetaScanRange') , single(Pdomain') , Size , height, width, RScan ) ;
+Err = R - ProjectionFan_2D ( single(Display_previous), height, width, Size, BetaScanRange', Pdomain', RScan ) ;
+% Display_previous = FBPparallel( single(R) , single(thetaRange') , single(t_range') , Size , height ,width ) ;
+% Err = R - ProjectionParallel_2D( single(Display_previous) , height , width , Size , thetaRange' , t_range' ) ;
 
 local_e = LocalError( Display , Display_previous ) ;
 figure  % hold residual graph
@@ -116,7 +119,6 @@ Rowsum = sum( SysMatrix , 2 ) ;
 Colsum = sum ( SysMatrix ) ;
 % Rowsum = ProjectionFan_2D ( single(ones(LDisplay,1)), height, width, Size, BetaScanRange', Pdomain', RScan ) ;
 % Colsum = BackprojectionFan2D( single(ones(LR,1)) , single(BetaScanRange') , single(Pdomain') , Size , height, width, RScan ) ;
-
 
 while ( IterativeTime <= Times && local_e > Threshold )            % end condition of loop
 %              
@@ -131,9 +133,9 @@ while ( IterativeTime <= Times && local_e > Threshold )            % end conditi
             disp ( ['IterativeTime: ', num2str(IterativeTime), ';   |    rRMSE: ', num2str( rrmse(IterativeTime )),';   |    local_e: ', num2str(local_e) ]) ;
             IterativeTime = IterativeTime + 1 ;
              
-%             Display_med = Vec2img_Cpp2Mat2D( Display , height , width ) ;
-%             imshow ( Display_med , [ 0  0.5 ] ) ;                     % display results
-%             drawnow;
+            Display_med = Vec2img_Cpp2Mat2D( Display , height , width ) ;
+            imshow ( Display_med , [ 0  0.5 ] ) ;                     % display results
+            drawnow;
             Display_previous = Display ;
 %             Err = R - SysMatrix * Display ;
 

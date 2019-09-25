@@ -45,7 +45,9 @@ picvector = Img2vec_Mat2Cpp2D( pic ) ;
 R = ProjectionFan_2D ( picvector, height, width, Size, BetaScanRange', Pdomain', RScan ) ;
 % R = reshape( R , LP , LBeta )' ;
 % figure,imshow(R, [])
-
+% load ..\..\Data\SysMatrix_fan_512
+% SysMatrix = GenSysMatFan ( height, width, Size, BetaScanRange, Pdomain, RScan, Center_x , Center_y) ;
+% R = SysMatrix * double(picvector) ;        % generate projection with system matrix
 Display = FBPfan( single(R) , single(BetaScanRange') , single(Pdomain') , Size , height, width, RScan ) ;
 % Display = BackprojectionFan2D( single(R) , single(BetaScanRange') , single(Pdomain') , Size , height, width, RScan ) ;
 
