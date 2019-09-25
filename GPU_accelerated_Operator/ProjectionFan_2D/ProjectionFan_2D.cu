@@ -22,17 +22,17 @@ __global__ void ProjectionFan(const float *dev_Pic, double *dev_Projection, cons
 	double resolution_1 = dev_resolution[0]; double resolution_2 = dev_resolution[1]; 
 
 	// according to euler equation   
-	double source_t = Center_t - Distance * sin(Beta);      // define the source in matlab coordinate
+	double source_t = Center_t + Distance * sin(-Beta);      // define the source in matlab coordinate
 	//double source_t = Center_t - Distance * sin(Beta) + dev_RandomErr[threadid];  
-	double source_s = Center_s + Distance * cos(Beta);
+	double source_s = Center_s + Distance * cos(-Beta);
 
 	double Theta = atan(P / Distance);        // radian angle in s'-t coordinate plane 
 
 	double Smax = 2 * Distance;
 
 	// define end detect point in matlab coordinate, Note that : 0 is the start
-	double DetectPoint_tend = Center_t + Smax * sin(Theta) * cos(Beta) - (Distance - Smax * cos(Theta)) * sin(Beta);
-	double DetectPoint_send = Center_s + Smax * sin(Theta) * sin(Beta) + (Distance - Smax * cos(Theta)) * cos(Beta);
+	double DetectPoint_tend = Center_t + Smax * sin(Theta) * cos(-Beta) + (Distance - Smax * cos(Theta)) * sin(-Beta);
+	double DetectPoint_send = Center_s - Smax * sin(Theta) * sin(-Beta) + (Distance - Smax * cos(Theta)) * cos(-Beta);
 
 	double T2S, S2T;
 	if ((DetectPoint_tend - source_t) == 0)
