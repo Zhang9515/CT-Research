@@ -28,21 +28,23 @@ function [ SysMatrix ] = GenSysMatFan ( height, width, Size, BetaScanRange, Pdom
                         DetectPoint_terminal = [ source_y , source_x ; DetectPoint_yend , DetectPoint_xend ] ;  
                         
                         [ Lx , Ly , x_signal , y_signal , ProjectionLine ] = Siddon2D ( DetectPoint_terminal , Resolution , Size , height , width , RScan ) ;    % call Siddon2D function
-                        if ( size( ProjectionLine , 2 ) <1 )
+                        if ( size( ProjectionLine , 2 ) <=1 )
                             continue ;
                         end
-                        
+                        X2Y = ( DetectPoint_yend - source_y ) / ( DetectPoint_xend - source_x + eps ) ;
+                        Y2X = ( DetectPoint_xend - source_x ) / ( DetectPoint_yend - source_y + eps ) ;
+                        X2Y = rangelimit( X2Y ) ; Y2X = rangelimit( Y2X ) ; 
 %                         % for the situation of Ly = 0 or Lx = 0 and also
 %                         % define the start point in the picture exactly
                         if ( ProjectionLine ( 3 , 1 ) == 1 )
-                                DetectPoint_x =  source_x + ( ProjectionLine ( 2 , 1 ) * Resolution - source_y ) / tan ( Beta ) ;                   % start point of the line
+                                DetectPoint_x =  source_x + ( ProjectionLine ( 2 , 1 ) * Resolution - source_y ) * Y2X ;                   % start point of the line
                                 DetectPoint_x = ceil ( DetectPoint_x / Resolution ) ;         % to determine the pixel index
                         else
-                                DetectPoint_y =  source_y + ( ProjectionLine ( 2 , 1 ) * Resolution - source_x ) * tan ( Beta ) ;          
+                                DetectPoint_y =  source_y + ( ProjectionLine ( 2 , 1 ) * Resolution - source_x ) * X2Y ;          
                                 DetectPoint_y = ceil ( DetectPoint_y / Resolution ) ;        % to determine the pixel index
                         end
 %                         
-                        for n = 1 : ( Lx + Ly -1 )
+                        for n = 1 : ( Lx + Ly )
 
                                 if ( ProjectionLine ( 3 , n ) == 1 && Ly ~= 0 )                                                              % define the pixel 
                                         DetectPoint_y = ProjectionLine ( 2 , n ) + 0.5 + y_signal * 0.5 ; 
