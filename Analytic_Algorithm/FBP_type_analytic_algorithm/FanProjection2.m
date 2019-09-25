@@ -15,9 +15,9 @@
 tic 
 clear all;
 Size = [ 60 , 60 ] ;                                  % actual range
-pic = single(phantom( 513 )) ;           % original picture : number means the number of pixel in the range 
+pic = single(phantom( 512 )) ;           % original picture : number means the number of pixel in the range 
 
-BetaScanInt = deg2rad(1) ;             % scanning internal              
+BetaScanInt = deg2rad(5) ;             % scanning internal              
 MaxBeta = deg2rad(360) ; 
 BetaScanRange = BetaScanInt : BetaScanInt : MaxBeta  ;     % scanning range , angle between SO and aixs Y
 LBeta = length ( BetaScanRange ) ; 
@@ -37,11 +37,16 @@ Ratio = 4 ;                                                           % shoul d 
 RScan = RPic * Ratio ;                                        % distance between source and center point ( radius of trajectory ) 
 
 R = zeros ( LBeta ,  LP ) ;   % create space to store fan projection
-%%  GPU projection
 picvector = Img2vec_Mat2Cpp2D( pic ) ;
-R = ProjectionFan_2D ( picvector, height, width, Size, BetaScanRange', Pdomain', RScan ) ;
-R = reshape( R , LP , LBeta )' ;
+%%  GPU projection
+% R = ProjectionFan_2D ( picvector, height, width, Size, BetaScanRange', Pdomain', RScan ) ;
+% R = reshape( R , LP , LBeta )' ;
 % figure,imshow(R, [])
+%% system matrix
+SysMatrix = GenSysMatFan ( height, width, Size, BetaScanRange, Pdomain, RScan, Center_x , Center_y) ;
+R = SysMatrix * double(picvector) ;
+R = reshape( R , LP , LBeta )' ;
+figure,imshow(R, [])
 
 %%  fan derived from inner radon projecion
 % for test step one 

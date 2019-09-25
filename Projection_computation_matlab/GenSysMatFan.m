@@ -16,8 +16,9 @@ function [ SysMatrix ] = GenSysMatFan ( height, width, Size, BetaScanRange, Pdom
     for Betaindex = 1 : LBeta 
 
                 Beta =  BetaScanRange ( Betaindex ) ; 
-                source_x = Center_x + RScan * cos( Beta ) ;
-                source_y = Center_y - RScan * sin( Beta ) ;
+                source_x = Center_x + RScan * sin( -Beta ) ;
+                source_y = Center_y + RScan * cos( Beta ) ;
+                
             for Pindex = 1 : LP 
                 
                         P = Pdomain ( Pindex ) ;
@@ -27,47 +28,47 @@ function [ SysMatrix ] = GenSysMatFan ( height, width, Size, BetaScanRange, Pdom
                         DetectPoint_terminal = [ source_y , source_x ; DetectPoint_yend , DetectPoint_xend ] ;  
                         
                         [ Lx , Ly , x_signal , y_signal , ProjectionLine ] = Siddon2D ( DetectPoint_terminal , Resolution , Size , height , width , RScan ) ;    % call Siddon2D function
-                        if ( size(ProjectionLine,2) <=1 )
+                        if ( size( ProjectionLine , 2 ) <1 )
                             continue ;
                         end
                         
 %                         % for the situation of Ly = 0 or Lx = 0 and also
 %                         % define the start point in the picture exactly
-%                         if ( ProjectionLine ( 3 , 1 ) == 1 )
-%                                 DetectPoint_x =  source_x + ( ProjectionLine ( 2 , 1 ) * Resolution - source_y ) / tan ( Beta ) ;                   % start point of the line
-%                                 DetectPoint_x = ceil ( DetectPoint_x / Resolution ) ;         % to determine the pixel index
-%                         else
-%                                 DetectPoint_y =  source_y + ( ProjectionLine ( 2 , 1 ) * Resolution - source_x ) * tan ( Beta ) ;          
-%                                 DetectPoint_y = ceil ( DetectPoint_y / Resolution ) ;        % to determine the pixel index
-%                         end
+                        if ( ProjectionLine ( 3 , 1 ) == 1 )
+                                DetectPoint_x =  source_x + ( ProjectionLine ( 2 , 1 ) * Resolution - source_y ) / tan ( Beta ) ;                   % start point of the line
+                                DetectPoint_x = ceil ( DetectPoint_x / Resolution ) ;         % to determine the pixel index
+                        else
+                                DetectPoint_y =  source_y + ( ProjectionLine ( 2 , 1 ) * Resolution - source_x ) * tan ( Beta ) ;          
+                                DetectPoint_y = ceil ( DetectPoint_y / Resolution ) ;        % to determine the pixel index
+                        end
 %                         
                         for n = 1 : ( Lx + Ly -1 )
 
-%                                 if ( ProjectionLine ( 3 , n ) == 1 && Ly ~= 0 )                                                              % define the pixel 
-%                                         DetectPoint_y = ProjectionLine ( 2 , n ) + 0.5 + y_signal * 0.5 ; 
-%                                 elseif ( ProjectionLine ( 3 , n ) == 2 && Lx ~= 0 )
-%                                         DetectPoint_x = ProjectionLine ( 2 , n ) + 0.5 + x_signal * 0.5 ; 
-%                                 end
+                                if ( ProjectionLine ( 3 , n ) == 1 && Ly ~= 0 )                                                              % define the pixel 
+                                        DetectPoint_y = ProjectionLine ( 2 , n ) + 0.5 + y_signal * 0.5 ; 
+                                elseif ( ProjectionLine ( 3 , n ) == 2 && Lx ~= 0 )
+                                        DetectPoint_x = ProjectionLine ( 2 , n ) + 0.5 + x_signal * 0.5 ; 
+                                end
 %                                 disp(length ( ProjectionLine ))
 %                                 disp(n)
 %                                 disp('----------------------------------')
-                                if ( ProjectionLine ( 3 , n ) == 1 )
-                                    D1x =  source_x + ( ProjectionLine ( 2 , n ) * Resolution - source_y ) / tan ( Beta ) ; 
-                                    D1y = ProjectionLine ( 2 , n ) * Resolution ;
-                                elseif ( ProjectionLine ( 3 , n ) == 2 )
-                                    D1x = ProjectionLine ( 2 , n ) * Resolution ;
-                                    D1y = source_y + ( ProjectionLine ( 2 , n ) * Resolution - source_x ) * tan ( Beta ) ;     
-                                end
-                                if ( ProjectionLine ( 3 , n+1 ) == 1 )
-                                    D2x =  source_x + ( ProjectionLine ( 2 , n+1 ) * Resolution - source_y ) / tan ( Beta ) ; 
-                                    D2y = ProjectionLine ( 2 , n+1 ) * Resolution ;
-                                elseif ( ProjectionLine ( 3 , n+1 ) == 2 )
-                                    D2x = ProjectionLine ( 2 , n+1 ) * Resolution ;
-                                    D2y = source_y + ( ProjectionLine ( 2 , n+1 ) * Resolution - source_x ) * tan ( Beta ) ;     
-                                end
-                                
-                                DetectPoint_x = ceil ( 0.5 * ( D1x + D2x ) / Resolution ) ;
-                                DetectPoint_y = ceil ( 0.5 * ( D1y + D2y ) / Resolution ) ;
+%                                 if ( ProjectionLine ( 3 , n ) == 1 )
+%                                     D1x =  source_x + ( ProjectionLine ( 2 , n ) * Resolution - source_y ) / tan ( Beta ) ; 
+%                                     D1y = ProjectionLine ( 2 , n ) * Resolution ;
+%                                 elseif ( ProjectionLine ( 3 , n ) == 2 )
+%                                     D1x = ProjectionLine ( 2 , n ) * Resolution ;
+%                                     D1y = source_y + ( ProjectionLine ( 2 , n ) * Resolution - source_x ) * tan ( Beta ) ;     
+%                                 end
+%                                 if ( ProjectionLine ( 3 , n+1 ) == 1 )
+%                                     D2x =  source_x + ( ProjectionLine ( 2 , n+1 ) * Resolution - source_y ) / tan ( Beta ) ; 
+%                                     D2y = ProjectionLine ( 2 , n+1 ) * Resolution ;
+%                                 elseif ( ProjectionLine ( 3 , n+1 ) == 2 )
+%                                     D2x = ProjectionLine ( 2 , n+1 ) * Resolution ;
+%                                     D2y = source_y + ( ProjectionLine ( 2 , n+1 ) * Resolution - source_x ) * tan ( Beta ) ;     
+%                                 end
+%                                 
+%                                 DetectPoint_x = ceil ( 0.5 * ( D1x + D2x ) / Resolution ) ;
+%                                 DetectPoint_y = ceil ( 0.5 * ( D1y + D2y ) / Resolution ) ;
                                 
                                 if ( DetectPoint_y > 0 && DetectPoint_y <= height && DetectPoint_x > 0 && DetectPoint_x <= width )       
                                          L ( end + 1 ) = ( Betaindex - 1 ) * LP +  Pindex ; J ( end + 1 ) = ( DetectPoint_y - 1 ) * width + DetectPoint_x ;   
