@@ -31,7 +31,7 @@ function PatchSize = AdpativePatchSizeSelection( pic , maxSize)
                     Pprevious( center_index , : ) = hist(center_index,:)   / sum(hist(center_index,:) ) ;
                     PatchSize( center_index ) = 2*pz + 1 ;
                 else
-                    index = [ (-pz : pz) + pz * width, (-pz : pz) - pz * width, -pz + (-pz:pz)*width, pz + (-pz:pz)*width] + center_index ;
+                    index = [ (-pz : pz) + pz * width, (-pz : pz) - pz * width, -pz + (-pz:pz)*width, pz + (-pz:pz)*width] + center_index ;   % peripheral
                     Pcurrent = histcounts( GradAng ( index ) , edges ) / sum( histcounts( GradAng ( index ) , edges ) ) ;
                     KLcurrent = kldiv( 1:(numel(edges)-1) , Pprevious( center_index , : ) + eps, Pcurrent + eps, 'sym') ;      % compute KL divergence between current and previous GradAng distribution
                     hist(center_index,:)  = hist(center_index,:)  + histcounts( GradAng ( index ) , edges ) ;                
@@ -50,5 +50,5 @@ function PatchSize = AdpativePatchSizeSelection( pic , maxSize)
         % altogether, denoted by left, right, up, down
         % but actually what I do above has perfectly solve the boundry area,
         % and all pixels are covered by at least one patch.  
-    end
-end
+    end %pz
+end % function

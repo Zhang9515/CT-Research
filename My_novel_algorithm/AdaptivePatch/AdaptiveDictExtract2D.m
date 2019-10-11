@@ -1,20 +1,18 @@
-function patchset = AdaptiveExtractPatch2D ( image , Patchsize , slidestep , alternate )
-    % 2019/06/02 by ZXZ
-    % extract patch from image adaptively
+function versatileDictionary = AdaptiveDictExtract2D ( Ref_image , Patchsize , slidestep , patch_level , interval )
+    % 2019/10/10 by ZXZ
+    % extract patch from Ref_image adaptively
     % input: Patchsize is the patch size map transformed into a column
     % vector
     % patchset is cell tuple of patch with various size
-    defaults = {'RemoveDC','NoRemoveDC'} ;
-    idx = find(strncmp(defaults, alternate, 8 ) ) ;
-
-    [ height , width] = size( image ) ;
-    patchset = cell( height*width , 1 ) ;
+    versatileDictionary = cell( patch_level ,1 ) ;
+    
+    [ height , width] = size( Ref_image ) ;
     setm = floor(( height - 1 ) / slidestep(1) + 1) ;
     setn = floor(( width - 1 ) / slidestep(2) + 1 ) ;
     
     for index_x = 1 : setn
         for index_y = 1 : setm
-            Img_index_y = height - (index_y-1) * slidestep(1) - 1 ;
+            Img_index_y = height - (index_y-1) * slidestep(1) ;
             Img_index_x = (index_x-1) * slidestep(2) +1;
             index_pix = Img_index_x + (Img_index_y-1) * width ;
             patchsize = Patchsize ( index_pix ) ;
@@ -40,13 +38,13 @@ function patchset = AdaptiveExtractPatch2D ( image , Patchsize , slidestep , alt
                 px1 = Img_index_x - shift ;
                 px2 = Img_index_x + shift ;
             end
+            
+            level = floor((patchsize-1)/(2 * interval) )+1 ;
+            versatileDictionary { level }(:,end+1) = reshape ( Ref_image (py1 : py2 , px1 : px2 ) , patchsize*patchsize , 1) ;                 
 
-            if ( idx == 1) % operate DC remove within each patches before being extrated
-                patchset { index_pix } = reshape ( removeDC( image (py1 : py2 , px1 : px2 ) ) , patchsize*patchsize , 1) ;
-            elseif ( idx == 2)  % no operation of DC removal
-                patchset { index_pix } = reshape ( image (py1 : py2 , px1 : px2 ) , patchsize*patchsize , 1) ;                 
-            end
         end
-    end          
-    
+    end     
+    for index = 1 : patch_level
+        versatileDictionary{ index } = col_normalization( versatileDictionary{ index } ) ;
+    end
 end
