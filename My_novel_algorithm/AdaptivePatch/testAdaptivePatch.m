@@ -24,8 +24,8 @@ MaxBeta = deg2rad(360) ;
 BetaScanRange = BetaScanInt : BetaScanInt : MaxBeta  ;     % scanning range , angle between SO and aixs Y
 LBeta = length ( BetaScanRange ) ; 
 
-% pic = trial2D ; 
-pic =trial2D_prior ;
+pic = trial2D ; 
+% pic =trial2D_prior ;
 % clear trial2D
 % pic = phantom(512) ;
 Size = [ 60 , 60 ] ;                                  % actual range
@@ -82,7 +82,7 @@ patch_level = Maxsize / size_interval ;
 % patchsize_map_disp = Vec2img_Cpp2Mat2D( patchsize_map , height , width ) ;
 disp('patch selection complete')
 slidestep = [3 , 3] ;
-Dicslidestep = [1 , 1] ;
+Dicslidestep = [2 , 2] ;
 sparsity = 3 ; 
 % construct dictionary, because here image patches are directly used as
 % atom, dictionary keeps still

@@ -133,7 +133,9 @@ while (k < maxit) && (flag == 0)
     end
         
     delta = p'*q ;
-    if delta <= 0, indefinite = 1;   end
+    if (delta <= 0)
+        indefinite = 1;  
+    end
     if delta == 0, delta      = eps; end
     alpha = gamma / delta;
     

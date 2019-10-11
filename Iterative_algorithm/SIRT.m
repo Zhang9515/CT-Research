@@ -9,12 +9,12 @@ clear all;
 % load 'G:\CTcode\Data\trial2D'
 % server2 path
 % parameter define
-load ..\..\Data\Adaptive_patchsize_selection\trial2D
+load ..\..\..\Data\Adaptive_patchsize_selection\trial2D
 displaywindow = [0 0.5] ;
 
 %% fan beam model
 
-BetaScanInt = deg2rad(5) ;             % scanning internal              
+BetaScanInt = deg2rad(10) ;             % scanning internal              
 MaxBeta = deg2rad(360) ; 
 BetaScanRange = BetaScanInt : BetaScanInt : MaxBeta  ;     % scanning range , angle between SO and aixs Y
 LBeta = length ( BetaScanRange ) ; 
@@ -76,9 +76,9 @@ picvector = Img2vec_Mat2Cpp2D( pic ) ;
 % SysMatrix = GenSysMatParal ( height , width , Size , Center_x , Center_y , thetaRange , t_range ) ;
 % load ..\..\Data\SysMatrix_parallel_512
 % fan beam
-% SysMatrix = GenSysMatFan ( height, width, Size, BetaScanRange, Pdomain, RScan, Center_x , Center_y) ;
-load ..\..\Data\SysMatrix_fan_512
-R = SysMatrix * double(picvector) ;        % generate projection with system matrix
+SysMatrix = GenSysMatFan ( height, width, Size, BetaScanRange, Pdomain, RScan, Center_x , Center_y) ;
+% load ..\..\..\Data\SysMatrix_fan_512
+% R1 = SysMatrix * double(picvector) ;        % generate projection with system matrix
 
 % R = reshape( R , Lt , Ltheta ) ;   % parallel
 % R = reshape( R , LP ,  LBeta ) ;  % fan 
@@ -87,19 +87,19 @@ R = SysMatrix * double(picvector) ;        % generate projection with system mat
 % % load A.mat
 % % SysMatrix = A ; 
 %% GPU-based projection 
-% R = ProjectionFan_2D ( picvector, height, width, Size, BetaScanRange', Pdomain', RScan ) ;
+R = ProjectionFan_2D ( picvector, height, width, Size, BetaScanRange', Pdomain', RScan ) ;
 % tic
 % R = ProjectionParallel_2D( picvector , height , width , Size , thetaRange' , t_range' ) ; 
 % toc
-% R2 = reshape( R2 , Lt , Ltheta ) ;
+% R2 = reshape( R , LP ,  LBeta ) ;
 % figure,imshow(R2,[])
 
 %% iterative
 % S.Kaczmarz Method
 Threshold = 1e-6 ;
-Times = 100 ;
+Times = 10000 ;
 IterativeTime = 1  ;      % times to iterative
-Lamda = 1 ;                       % relaxtion factor  SIRT
+Lamda = 2 ;                       % relaxtion factor  SIRT
 Display = zeros ( height * width , 1 ) ;          % store the reconstruction
 MinLim = 0 ; MaxLim = 1;     % range constraint of solution
 % Display = ones ( 1  , height * width) ;          % store the reconstruction for MART
@@ -107,11 +107,14 @@ LDisplay = length ( Display ) ;
 LR = length(R) ;
 rmse = zeros( 1 ,  Times ) ;                                       % judgement parameter
 Display_previous = FBPfan( single(R) , single(BetaScanRange') , single(Pdomain') , Size , height, width, RScan ) ;
+% Display = Vec2img_Cpp2Mat2D( Display_previous , height , width ) ;
+% figure,imshow(Display,displaywindow)
+% Display_previous = zeros( LDisplay , 1) ;
 Err = R - ProjectionFan_2D ( single(Display_previous), height, width, Size, BetaScanRange', Pdomain', RScan ) ;
 % Display_previous = FBPparallel( single(R) , single(thetaRange') , single(t_range') , Size , height ,width ) ;
 % Err = R - ProjectionParallel_2D( single(Display_previous) , height , width , Size , thetaRange' , t_range' ) ;
 
-local_e = LocalError( Display , Display_previous ) ;
+local_e = 1 ;
 figure  % hold residual graph
 
 % compute the row/column sum of system matrix
@@ -119,7 +122,7 @@ Rowsum = sum( SysMatrix , 2 ) ;
 Colsum = sum ( SysMatrix ) ;
 % Rowsum = ProjectionFan_2D ( single(ones(LDisplay,1)), height, width, Size, BetaScanRange', Pdomain', RScan ) ;
 % Colsum = BackprojectionFan2D( single(ones(LR,1)) , single(BetaScanRange') , single(Pdomain') , Size , height, width, RScan ) ;
-
+% Display_previous = zeros( LDisplay , 1) ;
 while ( IterativeTime <= Times && local_e > Threshold )            % end condition of loop
 %              
            
@@ -129,14 +132,16 @@ while ( IterativeTime <= Times && local_e > Threshold )            % end conditi
              Display ( Display < MinLim ) = MinLim ;       Display ( Display > MaxLim ) = MaxLim ;   % non-negation constraint
 %     Dismean = mean ( Display ) ;
             rrmse ( IterativeTime ) = rRMSE( Display , picvector ) ;      % compute error
+            my_psnr (IterativeTime) = psnr( Display , double(picvector) ) ;
             local_e = LocalError( Display , Display_previous ) ;
-            disp ( ['IterativeTime: ', num2str(IterativeTime), ';   |    rRMSE: ', num2str( rrmse(IterativeTime )),';   |    local_e: ', num2str(local_e) ]) ;
+            disp ( ['IterativeTime: ', num2str(IterativeTime), ';   |    rRMSE: ', num2str( rrmse(IterativeTime )),';   |    PSNR: ', num2str( my_psnr(IterativeTime )),';   |    local_e: ', num2str(local_e) ]) ;
             IterativeTime = IterativeTime + 1 ;
              
             Display_med = Vec2img_Cpp2Mat2D( Display , height , width ) ;
-            imshow ( Display_med , [ 0  0.5 ] ) ;                     % display results
+            imshow ( Display_med , displaywindow ) ;                     % display results
             drawnow;
             Display_previous = Display ;
+            Err = R - SysMatrix * Display_previous ;
 %             Err = R - SysMatrix * Display ;
 
 %     Rmed = ProjectionParallel_2D( single(Display) , height , width , Size , deg2rad(thetaRange') , t_range' ) ;
@@ -147,11 +152,11 @@ while ( IterativeTime <= Times && local_e > Threshold )            % end conditi
 %     drawnow ; 
     
 end
+Display = Vec2img_Cpp2Mat2D( Display , height , width ) ;
+% Display = reshape ( Display , width , height ) ;
+% Display =  flipud ( Display' ) ;
 
-Display = reshape ( Display , width , height ) ;
-Display =  flipud ( Display' ) ;
-
-figure , imshow ( Display , [ 0  0.5 ] ) ;                     % display results
+figure , imshow ( Display , displaywindow ) ;                     % display results
 
 % figure, plot ( 1 : Times , MSE( 1  : Times ) ) ;                          % display error graph
 % title ( ' error graph ' ) ;

@@ -240,13 +240,13 @@ h = zeros ( ( Lt * 2 - 1 ) , 1 ) ;
 % RL
 % for i = 0 : Lt - 1                %假设采样间隔为1，有限带宽斜变滤波器 
 %     if i == 0
-%         h ( Lt ) = 0.5 / ( 2 * t_int )^2 ;
+%         h ( Lt ) = 1 / ( 2 * t_int )^2 ;
 %     elseif rem ( i , 2 ) == 0          % even
 %         h ( Lt - i ) = 0 ;
 %         h ( Lt + i ) = 0 ;
 %     else
-%         h ( Lt - i )= -0.5 / ( i * pi * t_int ) ^ 2 ;     % odd
-%         h ( Lt + i ) = -0.5 / ( i * pi * t_int ) ^ 2 ;
+%         h ( Lt - i )= -1 / ( i * pi * t_int ) ^ 2 ;     % odd
+%         h ( Lt + i ) = -1 / ( i * pi * t_int ) ^ 2 ;
 %     end
 % end
 % SL 

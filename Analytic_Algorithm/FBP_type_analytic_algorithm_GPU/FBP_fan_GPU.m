@@ -14,13 +14,15 @@
 %   note that resolution is different from length
 tic 
 clear all;
+load ..\..\..\Data\Adaptive_patchsize_selection\trial2D
+%%
 Size = [ 60 , 60 ] ;                                  % actual range
-% pic = single(phantom( 512 )) ;           % original picture : number means the number of pixel in the range 
-load('E:\ZXZ\Data\trial2D.mat')
 pic = trial2D ;
+pic = single(phantom( 512 )) ;           % original picture : number means the number of pixel in the range 
+
 Displaywindow = [0 0.5] ;
 
-BetaScanInt = deg2rad(5) ;             % scanning internal              
+BetaScanInt = deg2rad(0.1) ;             % scanning internal              
 MaxBeta = deg2rad(360) ; 
 BetaScanRange = BetaScanInt : BetaScanInt : MaxBeta  ;     % scanning range , angle between SO and aixs Y
 LBeta = length ( BetaScanRange ) ; 
@@ -48,6 +50,19 @@ R = ProjectionFan_2D ( picvector, height, width, Size, BetaScanRange', Pdomain',
 % load ..\..\Data\SysMatrix_fan_512
 % SysMatrix = GenSysMatFan ( height, width, Size, BetaScanRange, Pdomain, RScan, Center_x , Center_y) ;
 % R = SysMatrix * double(picvector) ;        % generate projection with system matrix
+%% hamming 
+% R = reshape( R , LP , LBeta ) ;
+% Hamming = zeros ( ( LP * 2 - 1 )  , 1 ) ; 
+% HamRadius = 1 ;
+% Hamming ( LP - HamRadius : LP + HamRadius ) = hamming ( 2 * HamRadius +1 ) ;                   % convolve with hamming window
+% Hammingsum = sum ( Hamming ) ;             % to divide the sum of hamming window 
+% Rcov = zeros( LP , LBeta ) ;
+% for i = 1 : LBeta
+%         cov = conv ( R ( : , i ) , Hamming ) ;                              % convolution with filter
+%         Rcov ( : , i ) = cov ( LP : 2 * LP - 1 ) / Hammingsum ;
+% end
+% Rcov = reshape( Rcov , LP * LBeta , 1 ) ;
+
 Display = FBPfan( single(R) , single(BetaScanRange') , single(Pdomain') , Size , height, width, RScan ) ;
 % Display = BackprojectionFan2D( single(R) , single(BetaScanRange') , single(Pdomain') , Size , height, width, RScan ) ;
 
@@ -58,8 +73,8 @@ figure,imshow( Display , Displaywindow)
 % figure , imshow( ProjectionDisplay , [ 0 , 1 ] ) ; 
 % title ( ' Reconstructed image ' ) ;
 % pic = phantom( height , width ) ;
-% mid_index = round(height/2) ;
-% figure , plot ( 1 : size ( pic , 1 ) , ProjectionDisplay ( mid_index , : ) , 1 : height , pic ( mid_index , : ) ) ;
+mid_index = round(height/2) ;
+figure , plot ( 1 : size ( pic , 1 ) , Display ( mid_index , : ) , 1 : height , pic ( mid_index , : ) ) ;
 % title ( ' grey distrubition ' ) ;
 % axis ( [ 0 height 0 1 ] ) ;
 %%   frequency display

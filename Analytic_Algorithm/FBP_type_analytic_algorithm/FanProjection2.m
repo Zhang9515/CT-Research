@@ -12,12 +12,12 @@
 %  
 %  % we define the actual length of the pic as ( x = 60 mm y = 60 mm )
 %   note that resolution is different from length
-tic 
+
 clear all;
 Size = [ 60 , 60 ] ;                                  % actual range
-pic = single(phantom( 512 )) ;           % original picture : number means the number of pixel in the range 
+pic = single(phantom( 256 )) ;           % original picture : number means the number of pixel in the range 
 
-BetaScanInt = deg2rad(5) ;             % scanning internal              
+BetaScanInt = deg2rad(0.5) ;             % scanning internal              
 MaxBeta = deg2rad(360) ; 
 BetaScanRange = BetaScanInt : BetaScanInt : MaxBeta  ;     % scanning range , angle between SO and aixs Y
 LBeta = length ( BetaScanRange ) ; 
@@ -39,14 +39,14 @@ RScan = RPic * Ratio ;                                        % distance between
 R = zeros ( LBeta ,  LP ) ;   % create space to store fan projection
 picvector = Img2vec_Mat2Cpp2D( pic ) ;
 %%  GPU projection
-% R = ProjectionFan_2D ( picvector, height, width, Size, BetaScanRange', Pdomain', RScan ) ;
+R = ProjectionFan_2D ( picvector, height, width, Size, BetaScanRange', Pdomain', RScan ) ;
 % R = reshape( R , LP , LBeta )' ;
 % figure,imshow(R, [])
 %% system matrix
-SysMatrix = GenSysMatFan ( height, width, Size, BetaScanRange, Pdomain, RScan, Center_x , Center_y) ;
-R = SysMatrix * double(picvector) ;
+% SysMatrix = GenSysMatFan ( height, width, Size, BetaScanRange, Pdomain, RScan, Center_x , Center_y) ;
+% R = SysMatrix * double(picvector) ;
 R = reshape( R , LP , LBeta )' ;
-figure,imshow(R, [])
+% figure,imshow(R, [])
 
 %%  fan derived from inner radon projecion
 % for test step one 
@@ -278,7 +278,7 @@ figure,imshow(R, [])
 
 %% filter convolution based S-L
 %%step two
-
+tic 
 G = zeros ( 2 * LP - 1  , 1) ;                                            % create filter
 
 for i = 0 : LP - 1 
@@ -369,7 +369,7 @@ for i = 1 : width
     end
 end
 
-
+toc
 %% Display 
 
 ProjectionDisplay = flipud ( Projection' ) ;
@@ -390,4 +390,3 @@ axis ( [ 0 height 0 1 ] ) ;
 % aver=sum ( sum ( pic ) ) / ( size ( pic , 1 ) * size ( pic , 2 ) ) ;
 % pd=double ( pic ) ;
 % d= ( sum ( sum ( ( pd - Projection ).^2 ) ) / sum ( sum ( ( pd - aver ).^2 ) ) ) ^0.5 ;
-toc
