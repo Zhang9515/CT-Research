@@ -10,10 +10,10 @@ clear;
 % load 'G:\CTcode\Data\trial2D'
 % server2 path
 load ..\..\..\Data\Adaptive_patchsize_selection\trial2D
-load ..\..\..\Data\Adaptive_patchsize_selection\trial2D_HmR6
+% load ..\..\..\Data\Adaptive_patchsize_selection\trial2D_HmR6
 load ..\..\..\Data\Adaptive_patchsize_selection\trial2D_prior_324
 load ..\..\..\Data\Adaptive_patchsize_selection\trial2D_angle72_ratio1
-save_path = '..\..\..\Data\Adaptive_patchsize_selection\PICCS_miu200_lamda0.001_p4s3sp5_CG_PreInit\' ;
+% save_path = '..\..\..\Data\Adaptive_patchsize_selection\PICCS_miu200_lamda0.001_p4s3sp5_CG_PreInit\' ;
 % load 'E:\ZXZ\Data\trial2D_angle5'
 % display parameter
 displaywindow = [0 0.5] ;
@@ -81,8 +81,8 @@ patch_level = Maxsize / size_interval ;
 % toc
 % patchsize_map_disp = Vec2img_Cpp2Mat2D( patchsize_map , height , width ) ;
 disp('patch selection complete')
-slidestep = [3 , 3] ;
-Dicslidestep = [2 , 2] ;
+slidestep = [2 , 2] ;
+Dicslidestep = [1 , 1] ;
 sparsity = 3 ; 
 % construct dictionary, because here image patches are directly used as
 % atom, dictionary keeps still

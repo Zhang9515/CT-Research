@@ -15,9 +15,9 @@
 
 clear all;
 Size = [ 60 , 60 ] ;                                  % actual range
-pic = single(phantom( 256 )) ;           % original picture : number means the number of pixel in the range 
+pic = single(phantom( 512 )) ;           % original picture : number means the number of pixel in the range 
 
-BetaScanInt = deg2rad(0.5) ;             % scanning internal              
+BetaScanInt = deg2rad(5) ;             % scanning internal              
 MaxBeta = deg2rad(360) ; 
 BetaScanRange = BetaScanInt : BetaScanInt : MaxBeta  ;     % scanning range , angle between SO and aixs Y
 LBeta = length ( BetaScanRange ) ; 
@@ -27,7 +27,7 @@ Resolution = max ( Size ) / max ( size ( pic ) ) ;   % define the resolution of 
 RPic = max ( Size ) * sqrt ( 2 ) / 2 ;                     % radius of project
 
 MaxP = RPic * ( 1 + 0.1 )  ;                                           
-PInt = 0.1 ;                      %   interval of S ( interval on the detect plain )
+PInt = Resolution ;                      %   interval of S ( interval on the detect plain )
 Pdomain = - MaxP : PInt : MaxP ;                          % detective range
 LP = length ( Pdomain ) ;
 
@@ -39,11 +39,11 @@ RScan = RPic * Ratio ;                                        % distance between
 R = zeros ( LBeta ,  LP ) ;   % create space to store fan projection
 picvector = Img2vec_Mat2Cpp2D( pic ) ;
 %%  GPU projection
-R = ProjectionFan_2D ( picvector, height, width, Size, BetaScanRange', Pdomain', RScan ) ;
+% R = ProjectionFan_2D ( picvector, height, width, Size, BetaScanRange', Pdomain', RScan ) ;
 % R = reshape( R , LP , LBeta )' ;
 % figure,imshow(R, [])
 %% system matrix
-% SysMatrix = GenSysMatFan ( height, width, Size, BetaScanRange, Pdomain, RScan, Center_x , Center_y) ;
+SysMatrix = GenSysMatFan ( height, width, Size, BetaScanRange, Pdomain, RScan, Center_x , Center_y) ;
 % R = SysMatrix * double(picvector) ;
 R = reshape( R , LP , LBeta )' ;
 % figure,imshow(R, [])

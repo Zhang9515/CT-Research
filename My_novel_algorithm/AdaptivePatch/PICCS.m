@@ -62,9 +62,9 @@ R = SysMatrix * double(picvector) ;        % generate projection with system mat
 % S.Kaczmarz Method
 Threshold = 1e-6 ;
 MaxLim = 1 ; MinLim = 0 ;    % value limit
-miu = 200 ;        % regularization parameter for TV
-alpha = 0 ;    % panelty balance between the prior and the current 
-lamda1 = 0.001 * miu ;           lamda2 = 0.001 * miu ;            % relaxtion factor for split bregman( 2*miu is recommended by the classical paper)
+miu = 2 ;        % regularization parameter for TV
+alpha = 0.5 ;    % panelty balance between the prior and the current 
+lamda1 = 2 * miu ;           lamda2 = 2 * miu ;            % relaxtion factor for split bregman( 2*miu is recommended by the classical paper)
 Display = zeros ( height * width , 1 ) ;          % store the reconstruction
 LDisplay = numel ( Display ) ;
 
@@ -88,35 +88,13 @@ b1_CG = miu * (SysMatrix') * R ;
 iter_CG = 80 ;
 % img_init = zeros(LDisplay,1) ; 
 
-Maxsize = 40 ;  % the actual size should be 2 * maxsize +1
-size_interval = 2 ;
 % patch operation parameter
-% tic
-[edge_map, thresh]=edge(trial2D_prior, 'canny') ;
-patchsize_map = bwdist(edge_map,'chessboard');
-patchsize_map = (patchsize_map + double(edge_map)) ;      % add the edge
-% pre-process 
-patchsize_map( patchsize_map > Maxsize ) = Maxsize ;     % max control
-patchsize_map = 1 + 2 * (floor((patchsize_map - 1)/size_interval+1)-1) ;   % discret by interval 2
-patchsize_map = patchsize_map * 2 + 1 ;      % patch size map
-patchsize_map = Img2vec_Mat2Cpp2D( patchsize_map ) ;
-patch_level = Maxsize / size_interval ;
-% patchsize_map = AdpativePatchSizeSelection( pic , Maxsize) ;    % reference image for patch selection can be the fbp image or the truth image
-% toc
-% patchsize_map_disp = Vec2img_Cpp2Mat2D( patchsize_map , height , width ) ;
-disp('patch selection complete')
-slidestep = [2 , 2] ;
-Dicslidestep = [1 , 1] ;
+patchsize = [30 , 30] ; 
+slidestep = [3 , 3] ;
 sparsity = 3 ; 
 % construct dictionary, because here image patches are directly used as
 % atom, dictionary keeps still
-% construct whole range dictionary with various patch size
-HighQ_image = trial2D_prior ;
-clear trial2D_prior
-
-versatileDictionary = AdaptiveDictExtract2D ( HighQ_image , patchsize_map , Dicslidestep , patch_level , size_interval ) ;
-
-disp('dictionary complete')
+% HighQ_image = trial2D ;
 
 % set loop times
 outeriter = 20 ;
@@ -132,24 +110,9 @@ for outerloop = 1 : outeriter
     disp(['outerloop : ' , num2str(outerloop),'/',num2str(outeriter)])
     %% patch operation
     Display = double ( Img2vec_Mat2Cpp2D( Display_previous ) ) ;      % set the result of last iterate as the initiate value of current iterate
- 
-%% adaptive patch operation
 
-    patchset_LowQ = AdaptiveExtractPatch2D ( Display_previous , patchsize_map , slidestep, 'NoRemoveDC' ) ;    % extract the patches from the low quality image which need to be improved, store here to compute the DC later
-    disp('adaptive extraction complete')
-    %     Xintm = AdaptiveExtractPatch2D ( Display_previous, patchsize_map, 'RemoveDC' ) ;    % Xintm is set of patches which extracted from the low quality image
-    Xintm = patchset_LowQ ;
-
-    patchset_RemoveDC_tuple = Group_omp( versatileDictionary , Xintm, patchsize_map, [height , width],  sparsity, patch_level , size_interval) ;   % use group OMP to fit Xintm
-    disp('group_omp complete')
-    Image2D = AdaptivePatchSynthesis ( patchset_RemoveDC_tuple , patchset_LowQ, [height , width], slidestep, 'NoAddDC'  ) ;   % fuse all patches
-    disp('adaptive synthesis complete')
- 
-    imshow ( Image2D , displaywindow ) ;                     % display results
-    drawnow ;
-    test_display = Image2D ;
-     Display_prior = double ( Img2vec_Mat2Cpp2D( Image2D ) );
-%     Display_prior = double ( picvector ) ;
+%     Display_prior = double ( Img2vec_Mat2Cpp2D( trial2D_prior ) ) ;
+    Display_prior = picvector ;
     
     % initial of inner SB iterative, all parameter should be initialized
     % based on zero input
@@ -213,8 +176,10 @@ for outerloop = 1 : outeriter
                  PSNR( IterativeTime ,outerloop) = psnr ( Display , double(picvector) , 1) ; 
                  local_e = LocalError( Display , Display_previous ) ;
                  % objective function ( which is different from the previous)
+%                  loss = alpha * (norm(gradientMatrix_x * Display,1) + norm(gradientMatrix_y * Display,1)) + ( 1 - alpha ) * (norm(gradientMatrix_x * Substract_Display,1) + norm(gradientMatrix_y * Substract_Display,1))...
+%                  + 0.5 * miu * norm(ProjectionFan_2D ( single(Display), height, width, Size, BetaScanRange', Pdomain', RScan ) - R ,2) ;     
                  loss = alpha * (norm(gradientMatrix_x * Display,1) + norm(gradientMatrix_y * Display,1)) + ( 1 - alpha ) * (norm(gradientMatrix_x * Substract_Display,1) + norm(gradientMatrix_y * Substract_Display,1))...
-                 + 0.5 * miu * norm(SysMatrix * double(Display) - R ,2) ;     
+                 + 0.5 * miu * norm(SysMatrix * double(Display) - R ,2) ;    
                  disp ( ['IterativeTime: ', num2str(IterativeTime), ';   |    RMSE: ', num2str(rmse ( IterativeTime ,outerloop)), ';   |    psnr: ', num2str(PSNR ( IterativeTime , outerloop)), ';   |    local_e: ', num2str(local_e), ';   |    Loss: ', num2str(loss)]) ;
                  disp( ['SplitBregman_Constraint_X1: ',  num2str(norm(dx1-gradientMatrix_x * Display,2)), '  Constraint_Y1: ', num2str(norm(dy1-gradientMatrix_y * Display,2)), ...
                      '  Constraint_X2: ', num2str(norm(dx2-gradientMatrix_x * Substract_Display,2)), '  Constraint_Y2: ' , num2str(norm(dy2-gradientMatrix_y * Substract_Display,2))] )
