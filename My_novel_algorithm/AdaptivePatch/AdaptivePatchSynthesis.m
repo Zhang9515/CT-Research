@@ -50,7 +50,7 @@ function Image2D = AdaptivePatchSynthesis ( patchset_RemoveDC_tuple , patchset_t
     
     for index_x = 1 : setn
         for index_y = 1 : setm
-            Img_index_y = imgsize(1) - (index_y-1) * slidestep(1) - 1 ;
+            Img_index_y = imgsize(1) - (index_y-1) * slidestep(1) ;
             Img_index_x = (index_x-1) * slidestep(2) +1;
             index_pix = Img_index_x + (Img_index_y-1) * imgsize(2) ;
             patch_RemoveDC = patchset_RemoveDC_tuple{index_pix} ;

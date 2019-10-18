@@ -81,7 +81,7 @@ patch_level = Maxsize / size_interval ;
 % toc
 % patchsize_map_disp = Vec2img_Cpp2Mat2D( patchsize_map , height , width ) ;
 disp('patch selection complete')
-slidestep = [2 , 2] ;
+slidestep = [1 , 1] ;
 Dicslidestep = [1 , 1] ;
 sparsity = 3 ; 
 % construct dictionary, because here image patches are directly used as

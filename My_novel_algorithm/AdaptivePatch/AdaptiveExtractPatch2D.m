@@ -14,9 +14,12 @@ function patchset = AdaptiveExtractPatch2D ( image , Patchsize , slidestep , alt
     
     for index_x = 1 : setn
         for index_y = 1 : setm
-            Img_index_y = height - (index_y-1) * slidestep(1) - 1 ;
+            Img_index_y = height - (index_y-1) * slidestep(1) ;
             Img_index_x = (index_x-1) * slidestep(2) +1;
             index_pix = Img_index_x + (Img_index_y-1) * width ;
+            if ( index_pix <= 0 )
+                q = 1 ;
+            end
             patchsize = Patchsize ( index_pix ) ;
             shift = (patchsize-1) / 2 ;
             if ( Img_index_y - shift <1)
