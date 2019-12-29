@@ -23,9 +23,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[])
 	const long LR = LBeta * LP;
 
 	float *Displaycuda = new float[LDisplay];
+	//float *Displaycuda = new float[LR];
 	memset(Displaycuda, 0, sizeof(float));
 
 	plhs[0] = mxCreateDoubleMatrix(LDisplay, 1, mxREAL);
+	//plhs[0] = mxCreateDoubleMatrix(LR, 1, mxREAL);
 	double *Display = mxGetPr(plhs[0]);
 	//for debug{
 	/*float *Rcovcuda = new float[LR];
@@ -47,6 +49,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[])
 	// mxCreateDoubleMatrix: store unit is double, every output should be converted to double explicitly 
 
 	for (long num = 0; num < LDisplay; num++)
+	//for (long num = 0; num < LR; num++)
 		Display[num] = (double)Displaycuda[num];
 
 	//memcpy(Display, Displaycuda, LDisplay * sizeof(float));

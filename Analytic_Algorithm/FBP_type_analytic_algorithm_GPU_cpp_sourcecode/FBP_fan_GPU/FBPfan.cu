@@ -92,7 +92,7 @@ __global__ void BackProjection(const float *dev_Rcov, float *dev_Display, const 
 	}
 	thread_id = Sindex * T_length + Tindex;
 	dev_Display[thread_id] += Display_pBeta;
-
+	//dev_Display[thread_id] += 0;
 }
 
 // HeLTer function for using CUDA to add vectors in parallel.
@@ -281,7 +281,7 @@ cudaError_t FBPfan(float *Display, const float *R, const float *Pdomain, const f
 		mexPrintf("dev_Rcov cudaMalloc failed! %s\n", cudaGetErrorString(cudaStatus));
 		goto Error;
 	}
-	cudaMemset(dev_Rcov, 0, sizeof(float));
+	cudaMemset(dev_Rcov, 0, LR * sizeof(float));
 
 	// convolution with limited scale
 	gtime = ceil(1.0 * LP / Filterlengthlimit);
@@ -445,7 +445,7 @@ Error1:
 		mexPrintf("dev_Display cudaMalloc failed! %s\n", cudaGetErrorString(cudaStatus));
 		goto Error;
 	}
-	cudaMemset(dev_Display, 0, sizeof(float));
+	cudaMemset(dev_Display, 0, LDisplay * sizeof(float));
 
 	//Backprojection  
 	for (int BetaIndex = 0; BetaIndex < LBeta; BetaIndex++)
@@ -538,7 +538,7 @@ Error1:
 		goto Error;
 	}
 	//for debug{
-	//cudaStatus = cudaMemcpy(Rcov, dev_Rcov, LR * sizeof(float), cudaMemcpyDeviceToHost);
+	//cudaStatus = cudaMemcpy(Display, dev_Rcov, LR * sizeof(float), cudaMemcpyDeviceToHost);
 	//if (cudaStatus != cudaSuccess) {
 	//	fprintf(stderr, "cudaMemcpy failed!\n");
 	//	mexPrintf("cudaMemcpy dev_Display failed! %s\n", cudaGetErrorString(cudaStatus));
